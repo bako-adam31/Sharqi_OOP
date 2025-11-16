@@ -1,32 +1,45 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
 
+<VBox prefHeight="750.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.example.sharqi.ParfumController">
+    <children>
+        <SplitPane fx:id="mainSplitPane" dividerPositions="0.2" VBox.vgrow="ALWAYS">
+            <items>
+                <AnchorPane fx:id="leftMenuPane" maxWidth="250.0" minWidth="250.0" prefWidth="250.0" style="-fx-background-color: #f8f8f8; -fx-border-color: #e0e0e0; -fx-border-width: 0 1 0 0;">
+                    <children>
+                        <VBox alignment="TOP_CENTER" spacing="10.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                            <children>
+                                <Label text="Sharqi" style="-fx-font-size: 28px; -fx-font-weight: bold;">
+                                    <VBox.margin>
+                                        <Insets bottom="20.0" top="20.0" />
+                                    </VBox.margin>
+                                </Label>
+                                <Button fx:id="homeButton" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onHomeClick" style="-fx-font-size: 14px;" text="Home" />
+                                <Button fx:id="searchButton" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onSearchClick" style="-fx-font-size: 14px;" text="Search" />
+                                <Button fx:id="filterButton" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onFilterClick" style="-fx-font-size: 14px;" text="Filter Search" />
+                                <Button fx:id="cloneButton" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onCloneClick" style="-fx-font-size: 14px;" text="Clone Of" />
+                            </children>
+                            <padding>
+                                <Insets left="15.0" right="15.0" />
+                            </padding>
+                        </VBox>
+                    </children>
+                </AnchorPane>
 
-<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
-   <children>
-      <SplitPane dividerPositions="0.25" prefHeight="400.0" prefWidth="600.0">
-        <items>
-          <AnchorPane fx:id="leftMenuPage" minHeight="0.0" minWidth="0.0" prefHeight="398.0" prefWidth="104.0">
-               <children>
-                  <Button fx:id="homeButton" layoutY="74.0" mnemonicParsing="false" prefHeight="50.0" prefWidth="147.0" text="HOME" />
-                  <Button fx:id="searchButton" layoutY="124.0" mnemonicParsing="false" prefHeight="50.0" prefWidth="147.0" text="SEARCH" />
-                  <Button fx:id="filterButton" layoutY="174.0" mnemonicParsing="false" prefHeight="50.0" prefWidth="147.0" text="SIGNATURE FINDER" />
-                  <Button fx:id="cloneButton" layoutY="224.0" mnemonicParsing="false" prefHeight="50.0" prefWidth="147.0" text="CLONES" />
-                  <Label layoutY="6.0" prefHeight="50.0" prefWidth="147.0" text="Sharqi" textAlignment="CENTER" />
-               </children>
-            </AnchorPane>
-            <ScrollPane fx:id="contentScrollPane" prefHeight="398.0" prefWidth="359.0">
-              <content>
-                <AnchorPane fx:id="contentPane" minHeight="0.0" minWidth="0.0" prefHeight="399.0" prefWidth="448.0" />
-              </content>
-            </ScrollPane>
-        </items>
-      </SplitPane>
-   </children>
+                <ScrollPane fx:id="contentScrollPane" fitToWidth="true" hbarPolicy="NEVER" style="-fx-background-color: #FFFFFF;">
+                    <content>
+                        <AnchorPane fx:id="contentPane" />
+                    </content>
+                </ScrollPane>
+            </items>
+        </SplitPane>
+    </children>
 </VBox>

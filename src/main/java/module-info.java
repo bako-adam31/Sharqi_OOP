@@ -1,5 +1,3 @@
-// Helyes tartalom a module-info.java fájlhoz
-
 module org.example.sharqi {
     // Standard JavaFX modulok
     requires javafx.controls;
