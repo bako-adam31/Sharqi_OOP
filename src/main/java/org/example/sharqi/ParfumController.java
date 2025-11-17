@@ -4,7 +4,12 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.concurrent.Task;
+import javafx.concurrent.WorkerStateEvent;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -17,6 +22,7 @@ import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
@@ -25,12 +31,12 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import java.lang.reflect.Type;
 import java.net.URI;
@@ -48,16 +54,12 @@ import java.util.stream.Collectors;
 
 public class ParfumController {
 
-    // -----------------------------------------------------------------------
-    // API KULCS
-    // -----------------------------------------------------------------------
+    // ... (Konstansok és FXML változók változatlanok) ...
     private static final String API_KEY = "fd8094dfde51e2499d3f92a850057230d6bc59e890a431e31cd42997c55e4930";
-
-    // API URL-ek
     private static final String API_BASE_URL_SEARCH = "https://api.fragella.com/api/v1/fragrances?limit=20&search=";
     private static final String API_BASE_URL_SIMILAR = "https://api.fragella.com/api/v1/fragrances/similar?limit=5&name=";
+    private static final String API_BASE_URL_MATCH = "https://api.fragella.com/api/v1/fragrances/match?limit=6";
 
-    // --- FXML Hivatkozások ---
     @FXML private SplitPane mainSplitPane;
     @FXML private ScrollPane contentScrollPane;
     @FXML private AnchorPane contentPane;
@@ -67,13 +69,12 @@ public class ParfumController {
     @FXML private Button filterButton;
     @FXML private Button cloneButton;
 
-    // --- API és Segédváltozók ---
-    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .version(HttpClient.Version.HTTP_2)
+            .build();
     private final Gson gson = new Gson();
     private PauseTransition searchDebouncer;
     private Task<List<Parfum>> currentApiTask;
-
-    // Külön szálkezelő a bonyolultabb, párhuzamos API hívásokhoz
     private final ExecutorService executorService = Executors.newFixedThreadPool(5);
 
     @FXML
@@ -81,13 +82,10 @@ public class ParfumController {
         loadHomePage();
     }
 
-    // --- Gomb Eseménykezelők ---
     @FXML private void onHomeClick() { loadHomePage(); }
     @FXML private void onSearchClick() { loadSearchPage(); }
-    @FXML private void onFilterClick() { loadPlaceholderPage("Filteres keresés nézet (Hamarosan...)"); }
+    @FXML private void onFilterClick() { loadFilterPage(); }
     @FXML private void onCloneClick() { loadPlaceholderPage("Klonok nézet (Hamarosan...)"); }
-
-    // --- Oldal Betöltő Metódusok ---
 
     private void loadHomePage() {
         VBox homeView = ViewFactory.buildHomePage();
@@ -99,35 +97,48 @@ public class ParfumController {
     private void loadSearchPage() {
         VBox searchPageVBox = new VBox(15);
         searchPageVBox.setPadding(new Insets(20));
+
         Label title = new Label("Parfüm Keresése");
-        title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
+        title.getStyleClass().add("title-label"); // CSS
+
         TextField pageSearchField = new TextField();
         pageSearchField.setPromptText("Keresés parfümre vagy márkára...");
-        pageSearchField.setStyle("-fx-font-size: 16px;");
+        pageSearchField.getStyleClass().add("search-field"); // CSS
+
         ListView<Parfum> pageResultsListView = new ListView<>();
         VBox.setVgrow(pageResultsListView, Priority.ALWAYS);
+
         searchPageVBox.getChildren().addAll(title, pageSearchField, pageResultsListView);
 
         searchDebouncer = new PauseTransition(Duration.millis(400));
-        searchDebouncer.setOnFinished(e -> {
-            String searchTerm = pageSearchField.getText();
-            if (searchTerm != null && searchTerm.trim().length() > 2) {
-                if (currentApiTask != null && currentApiTask.isRunning()) {
-                    currentApiTask.cancel();
+        searchDebouncer.setOnFinished(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent e) {
+                String searchTerm = pageSearchField.getText();
+                if (searchTerm != null && searchTerm.trim().length() > 2) {
+                    if (currentApiTask != null && currentApiTask.isRunning()) {
+                        currentApiTask.cancel();
+                    }
+                    currentApiTask = startApiSearchTask(searchTerm, pageResultsListView);
+                    executorService.submit(currentApiTask);
                 }
-                currentApiTask = startApiSearchTask(searchTerm, pageResultsListView);
-                new Thread(currentApiTask).start();
             }
         });
-        pageSearchField.textProperty().addListener((obs, oldVal, newVal) -> {
-            searchDebouncer.stop();
-            searchDebouncer.playFromStart();
+        pageSearchField.textProperty().addListener(new ChangeListener<String>() {
+            @Override
+            public void changed(ObservableValue<? extends String> obs, String oldVal, String newVal) {
+                searchDebouncer.stop();
+                searchDebouncer.playFromStart();
+            }
         });
 
         pageResultsListView.getSelectionModel().selectedItemProperty().addListener(
-                (obs, oldSelection, newSelection) -> {
-                    if (newSelection != null) {
-                        displayParfumDetails(newSelection);
+                new ChangeListener<Parfum>() {
+                    @Override
+                    public void changed(ObservableValue<? extends Parfum> obs, Parfum oldSelection, Parfum newSelection) {
+                        if (newSelection != null) {
+                            displayParfumDetails(newSelection);
+                        }
                     }
                 }
         );
@@ -139,13 +150,66 @@ public class ParfumController {
         AnchorPane.setRightAnchor(searchPageVBox, 0.0);
     }
 
-    /**
-     * Betölti a RÉSZLETES nézetet 3 oszlopban.
-     */
+    private void loadFilterPage() {
+        // ... (A filter logika marad, csak a stílusokat szedtük ki) ...
+        GridPane filterGrid = new GridPane();
+        filterGrid.setHgap(10); filterGrid.setVgap(10); filterGrid.setPadding(new Insets(10));
+        filterGrid.setMinWidth(300);
+
+        Label accordLabel = new Label("Main Accord:"); accordLabel.setStyle("-fx-font-weight: bold;");
+        TextField accordField = new TextField(); accordField.setPromptText("Pl. leather");
+        filterGrid.add(accordLabel, 0, 0); filterGrid.add(accordField, 1, 0);
+
+        Label topLabel = new Label("Top Note:"); topLabel.setStyle("-fx-font-weight: bold;");
+        TextField topField = new TextField(); topField.setPromptText("Pl. bergamot");
+        filterGrid.add(topLabel, 0, 1); filterGrid.add(topField, 1, 1);
+
+        // ... (többi mező ugyanígy) ...
+        Label middleLabel = new Label("Middle Note:"); middleLabel.setStyle("-fx-font-weight: bold;");
+        TextField middleField = new TextField(); middleField.setPromptText("Pl. jasmine");
+        filterGrid.add(middleLabel, 0, 2); filterGrid.add(middleField, 1, 2);
+
+        Label baseLabel = new Label("Base Note:"); baseLabel.setStyle("-fx-font-weight: bold;");
+        TextField baseField = new TextField(); baseField.setPromptText("Pl. amber");
+        filterGrid.add(baseLabel, 0, 3); filterGrid.add(baseField, 1, 3);
+
+        Button findButton = new Button("Find Matches");
+        findButton.setMaxWidth(Double.MAX_VALUE);
+        filterGrid.add(findButton, 0, 4, 2, 1);
+
+        VBox filterVBox = new VBox(15, new Label("Filter by Notes & Accords"), filterGrid);
+        filterVBox.setPadding(new Insets(20));
+        ((Label)filterVBox.getChildren().get(0)).getStyleClass().add("section-title"); // CSS
+
+        VBox resultsVBox = new VBox(10);
+        resultsVBox.setPadding(new Insets(20));
+        Label resultsTitle = new Label("Matching Perfumes (max 6)");
+        resultsTitle.getStyleClass().add("section-title"); // CSS
+
+        FlowPane resultsPane = new FlowPane(10, 10);
+        resultsPane.setPrefWrapLength(500);
+        resultsVBox.getChildren().addAll(resultsTitle, resultsPane);
+
+        HBox filterPageLayout = new HBox(20, filterVBox, resultsVBox);
+
+        findButton.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent e) {
+                startApiMatchTask(
+                        accordField.getText(), topField.getText(), middleField.getText(), baseField.getText(), resultsPane
+                );
+            }
+        });
+
+        contentPane.getChildren().setAll(filterPageLayout);
+        AnchorPane.setTopAnchor(filterPageLayout, 0.0);
+        AnchorPane.setLeftAnchor(filterPageLayout, 0.0);
+    }
+
     private void displayParfumDetails(Parfum parfum) {
         VBox column1 = buildDetailsColumn(parfum);
         VBox column2 = buildAccordsAndNotesColumn(parfum);
-        VBox column3 = buildSimilarColumn(parfum); // A szűrés nélküli verzió
+        VBox column3 = buildSimilarColumn(parfum);
 
         HBox masterLayout = new HBox(20);
         masterLayout.setPadding(new Insets(20));
@@ -156,139 +220,134 @@ public class ParfumController {
         AnchorPane.setLeftAnchor(masterLayout, 0.0);
     }
 
-    /**
-     * Felépíti az 1. Oszlopot (Kép, Infók, Sillage, Ranking).
-     */
     private VBox buildDetailsColumn(Parfum parfum) {
-        // --- 1. Kép + Overlay ---
         StackPane imageStack = new StackPane();
         ImageView imageView = new ImageView();
         try {
             if (parfum.imageUrl != null && !parfum.imageUrl.isEmpty()) {
-                String originalUrl = parfum.imageUrl;
-                Image image = new Image(originalUrl, true);
-                image.errorProperty().addListener((obs, oldError, newError) -> {
-                    if (newError) image.getException().printStackTrace();
-                });
+                Image image = new Image(parfum.imageUrl, true);
                 imageView.setImage(image);
-            } else {
-                imageView.setImage(null);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            imageView.setImage(null);
-        }
+        } catch (Exception e) { e.printStackTrace(); }
+
         imageView.setFitHeight(300);
         imageView.setFitWidth(300);
         imageView.setPreserveRatio(true);
+
         VBox overlayVBox = new VBox();
         overlayVBox.setAlignment(Pos.BOTTOM_LEFT);
-        overlayVBox.setStyle("-fx-background-color: linear-gradient(from 0% 50% to 0% 100%, transparent, #000000); -fx-padding: 15;");
+        overlayVBox.getStyleClass().add("overlay-box"); // CSS
+
         Label nameLabel = new Label(parfum.name);
-        nameLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: white;");
+        nameLabel.getStyleClass().add("detail-name"); // CSS
+
         Label brandLabel = new Label("by " + parfum.brand);
-        brandLabel.setStyle("-fx-font-size: 16px; -fx-text-fill: #cccccc;");
+        brandLabel.getStyleClass().add("detail-brand"); // CSS
+
         HBox tagHBox = new HBox(10);
         tagHBox.setPadding(new Insets(10, 0, 0, 0));
         if (parfum.oilType != null && !parfum.oilType.isEmpty()) {
             Label oilLabel = new Label(parfum.oilType);
-            oilLabel.setStyle("-fx-background-color: rgba(255,255,255,0.3); -fx-text-fill: white; -fx-padding: 4 8 4 8; -fx-background-radius: 5;");
+            oilLabel.getStyleClass().addAll("tag-label", "tag-oil"); // CSS
             tagHBox.getChildren().add(oilLabel);
         }
         if (parfum.price != null && !parfum.price.isEmpty()) {
             Label priceLabel = new Label("$" + parfum.price);
-            priceLabel.setStyle("-fx-background-color: #e64a19; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 4 8 4 8; -fx-background-radius: 5;");
+            priceLabel.getStyleClass().addAll("tag-label", "tag-price"); // CSS
             tagHBox.getChildren().add(priceLabel);
         }
         overlayVBox.getChildren().addAll(nameLabel, brandLabel, tagHBox);
         imageStack.getChildren().addAll(imageView, overlayVBox);
+
         GridPane infoGrid = new GridPane();
         infoGrid.setHgap(10); infoGrid.setVgap(5);
-        infoGrid.add(new Label("For..."), 0, 0);
-        infoGrid.add(createStyledInfoLabel(parfum.gender != null ? parfum.gender : "-"), 0, 1);
-        infoGrid.add(new Label("Year"), 1, 0);
-        infoGrid.add(createStyledInfoLabel(parfum.year != null && !parfum.year.isEmpty() ? parfum.year : "-"), 1, 1);
-        infoGrid.add(new Label("Rating"), 2, 0);
-        infoGrid.add(createStyledInfoLabel(parfum.rating != null && !parfum.rating.isEmpty() ? "⭐ " + parfum.rating : "-"), 2, 1);
-        infoGrid.add(new Label("Country"), 3, 0);
-        infoGrid.add(createStyledInfoLabel(parfum.country != null && !parfum.country.isEmpty() ? parfum.country : "-"), 3, 1);
-        infoGrid.getChildren().forEach(node -> {
-            if (node instanceof Label && GridPane.getRowIndex(node) == 0) {
-                node.setStyle("-fx-font-size: 12px; -fx-text-fill: #777;");
-            }
-        });
+
+        // Helper a grid sorokhoz
+        addInfoRow(infoGrid, 0, "For...", parfum.gender != null ? parfum.gender : "-");
+        addInfoRow(infoGrid, 1, "Year", parfum.year != null ? parfum.year : "-");
+        addInfoRow(infoGrid, 2, "Rating", parfum.rating != null ? "⭐ " + parfum.rating : "-");
+        addInfoRow(infoGrid, 3, "Country", parfum.country != null ? parfum.country : "-");
+
         GridPane sillageGrid = new GridPane();
         sillageGrid.setHgap(10); sillageGrid.setVgap(5);
+
         sillageGrid.add(new Label("Sillage"), 0, 0);
-        Label sillageLabel = createStyledInfoLabel(parfum.sillage);
-        sillageLabel.setStyle(sillageLabel.getStyle() + "-fx-text-fill: #43A047;");
+        Label sillageLabel = new Label(parfum.sillage);
+        sillageLabel.getStyleClass().add("sillage-value"); // CSS
         sillageGrid.add(sillageLabel, 0, 1);
+
         sillageGrid.add(new Label("Longevity"), 1, 0);
-        Label longevityLabel = createStyledInfoLabel(parfum.longevity);
-        longevityLabel.setStyle(longevityLabel.getStyle() + "-fx-text-fill: #43A047;");
+        Label longevityLabel = new Label(parfum.longevity);
+        longevityLabel.getStyleClass().add("longevity-value"); // CSS
         sillageGrid.add(longevityLabel, 1, 1);
-        sillageGrid.getChildren().forEach(node -> {
-            if (node instanceof Label && GridPane.getRowIndex(node) == 0) node.setStyle("-fx-font-size: 12px; -fx-text-fill: #777;");
-        });
+
+        // Stílus a címkéknek
+        for (Node node : sillageGrid.getChildren()) {
+            if (node instanceof Label && GridPane.getRowIndex(node) != null && GridPane.getRowIndex(node) == 0) {
+                node.getStyleClass().add("info-label-key");
+            }
+        }
+
         FlowPane seasonPane = new FlowPane(5, 5);
         populateRankingPane(seasonPane, parfum.seasonRanking);
         FlowPane occasionPane = new FlowPane(5, 5);
         populateRankingPane(occasionPane, parfum.occasionRanking);
         VBox rankingVBox = new VBox(10, seasonPane, occasionPane);
-        VBox detailsColumnVBox = new VBox(15, imageStack, infoGrid, sillageGrid, rankingVBox);
-        return detailsColumnVBox;
+
+        return new VBox(15, imageStack, infoGrid, sillageGrid, rankingVBox);
     }
 
-    /**
-     * Felépíti a 2. Oszlopot (Main Accords, Notes).
-     */
+    private void addInfoRow(GridPane grid, int col, String key, String value) {
+        Label keyLabel = new Label(key);
+        keyLabel.getStyleClass().add("info-label-key"); // CSS
+        Label valueLabel = new Label(value);
+        valueLabel.getStyleClass().add("info-label-value"); // CSS
+        grid.add(keyLabel, col, 0);
+        grid.add(valueLabel, col, 1);
+    }
+
     private VBox buildAccordsAndNotesColumn(Parfum parfum) {
         VBox columnVBox = new VBox(20);
+
         VBox accordsVBox = new VBox(5);
         Label accordsTitle = new Label("Main Accords");
-        accordsTitle.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
+        accordsTitle.getStyleClass().add("section-title"); // CSS
         VBox accordBarsVBox = new VBox(5);
         populateAccordsPane(accordBarsVBox, parfum.mainAccordsPercentage);
         accordsVBox.getChildren().addAll(accordsTitle, accordBarsVBox);
+
         VBox notesVBox = new VBox(5);
-        Label topNotesTitle = new Label("Top Notes");
-        topNotesTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
-        FlowPane topNotesPane = new FlowPane(8, 8);
-        populateNotePane(topNotesPane, parfum.notes != null ? parfum.notes.top : null);
-        Label middleNotesTitle = new Label("Middle Notes");
-        middleNotesTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
-        middleNotesTitle.setPadding(new Insets(10, 0, 0, 0));
-        FlowPane middleNotesPane = new FlowPane(8, 8);
-        populateNotePane(middleNotesPane, parfum.notes != null ? parfum.notes.middle : null);
-        Label baseNotesTitle = new Label("Base Notes");
-        baseNotesTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
-        baseNotesTitle.setPadding(new Insets(10, 0, 0, 0));
-        FlowPane baseNotesPane = new FlowPane(8, 8);
-        populateNotePane(baseNotesPane, parfum.notes != null ? parfum.notes.base : null);
-        notesVBox.getChildren().addAll(topNotesTitle, topNotesPane, middleNotesTitle, middleNotesPane, baseNotesTitle, baseNotesPane);
+
+        addNotesSection(notesVBox, "Top Notes", parfum.notes != null ? parfum.notes.top : null);
+        addNotesSection(notesVBox, "Middle Notes", parfum.notes != null ? parfum.notes.middle : null);
+        addNotesSection(notesVBox, "Base Notes", parfum.notes != null ? parfum.notes.base : null);
+
         columnVBox.getChildren().addAll(accordsVBox, notesVBox);
         return columnVBox;
     }
 
-    /**
-     * Felépíti a 3. Oszlopot (Hasonló Parfümök), szűrés NÉLKÜL.
-     */
+    private void addNotesSection(VBox parent, String title, List<Parfum.NoteDetail> notes) {
+        Label label = new Label(title);
+        label.getStyleClass().add("subsection-title"); // CSS
+        label.setPadding(new Insets(10, 0, 0, 0));
+        FlowPane pane = new FlowPane(8, 8);
+        populateNotePane(pane, notes);
+        parent.getChildren().addAll(label, pane);
+    }
+
     private VBox buildSimilarColumn(Parfum parfum) {
         VBox columnVBox = new VBox(10);
         columnVBox.setPadding(new Insets(5, 0, 0, 0));
         columnVBox.setPrefWidth(300);
 
         Label title = new Label("Similar Fragrances");
-        title.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
+        title.getStyleClass().add("section-title"); // CSS
 
         FlowPane similarPane = new FlowPane(10, 10);
         similarPane.setPrefWrapLength(300);
 
         columnVBox.getChildren().addAll(title, similarPane);
-
-        // Elindítjuk az új, párhuzamosított hívást
         loadSimilarFragrancesParallel(parfum.name, similarPane);
-
         return columnVBox;
     }
 
@@ -300,47 +359,80 @@ public class ParfumController {
         AnchorPane.setLeftAnchor(label, 20.0);
     }
 
-    /**
-     * Létrehoz egy háttérfeladatot (Task) az API híváshoz (a "Search" oldalhoz).
-     */
+    // ... (startApiSearchTask és startApiMatchTask metódusok VÁLTOZATLANOK,
+    // csak a hibaellenőrzést hagytam benne) ...
     private Task<List<Parfum>> startApiSearchTask(String searchTerm, ListView<Parfum> resultsListView) {
-        Task<List<Parfum>> apiTask = new Task<>() {
+        Task<List<Parfum>> apiTask = new Task<List<Parfum>>() {
             @Override
             protected List<Parfum> call() throws Exception {
                 String encodedSearchTerm = URLEncoder.encode(searchTerm, StandardCharsets.UTF_8);
                 String finalApiUrl = API_BASE_URL_SEARCH + encodedSearchTerm;
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(finalApiUrl))
-                        .header("x-api-key", API_KEY)
-                        .GET()
-                        .build();
+                HttpRequest request = HttpRequest.newBuilder().uri(URI.create(finalApiUrl)).header("x-api-key", API_KEY).GET().build();
                 HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
                 if (isCancelled()) return null;
                 if (response.statusCode() == 200) {
-                    Type parfumListType = new TypeToken<ArrayList<Parfum>>(){}.getType();
-                    return gson.fromJson(response.body(), parfumListType);
-                } else {
-                    throw new Exception("API hiba: " + response.statusCode());
+                    return gson.fromJson(response.body(), new TypeToken<ArrayList<Parfum>>(){}.getType());
                 }
+                throw new Exception("API hiba");
             }
         };
-        apiTask.setOnSucceeded(e -> Platform.runLater(() -> resultsListView.getItems().setAll(apiTask.getValue())));
-        apiTask.setOnFailed(e -> {
-            System.err.println("Hiba az API hívás során:");
-            apiTask.getException().printStackTrace();
+        apiTask.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
+            @Override
+            public void handle(WorkerStateEvent e) {
+                resultsListView.getItems().setAll(apiTask.getValue());
+            }
         });
-        apiTask.setOnCancelled(e -> System.out.println("Keresés megszakítva: " + searchTerm));
+        apiTask.setOnFailed(new EventHandler<WorkerStateEvent>() {
+            @Override
+            public void handle(WorkerStateEvent e) {
+                apiTask.getException().printStackTrace();
+            }
+        });
         return apiTask;
     }
 
-    // --- Segédfüggvények ---
+    private Task<List<Parfum>> startApiMatchTask(String accord, String top, String middle, String base, FlowPane resultsPane) {
+        Task<List<Parfum>> matchTask = new Task<List<Parfum>>() {
+            @Override
+            protected List<Parfum> call() throws Exception {
+                StringBuilder query = new StringBuilder();
+                if (accord != null && !accord.trim().isEmpty()) query.append("&accords=").append(URLEncoder.encode(accord, StandardCharsets.UTF_8));
+                if (top != null && !top.trim().isEmpty()) query.append("&top=").append(URLEncoder.encode(top, StandardCharsets.UTF_8));
+                if (middle != null && !middle.trim().isEmpty()) query.append("&middle=").append(URLEncoder.encode(middle, StandardCharsets.UTF_8));
+                if (base != null && !base.trim().isEmpty()) query.append("&base=").append(URLEncoder.encode(base, StandardCharsets.UTF_8));
 
-    private Label createStyledInfoLabel(String text) {
-        if (text == null) return new Label("-");
-        Label label = new Label(text);
-        label.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
-        return label;
+                if (query.length() == 0) return new ArrayList<>();
+
+                String finalApiUrl = API_BASE_URL_MATCH + query.toString();
+                HttpRequest request = HttpRequest.newBuilder().uri(URI.create(finalApiUrl)).header("x-api-key", API_KEY).GET().build();
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() == 200) return gson.fromJson(response.body(), new TypeToken<ArrayList<Parfum>>(){}.getType());
+                return new ArrayList<>();
+            }
+        };
+        matchTask.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
+            @Override
+            public void handle(WorkerStateEvent e) {
+                resultsPane.getChildren().clear();
+                List<Parfum> matches = matchTask.getValue();
+                if (matches != null) {
+                    for (Parfum p : matches) {
+                        resultsPane.getChildren().add(createSmallParfumChip(p));
+                    }
+                }
+            }
+        });
+        matchTask.setOnFailed(new EventHandler<WorkerStateEvent>() {
+            @Override
+            public void handle(WorkerStateEvent e) {
+                matchTask.getException().printStackTrace();
+            }
+        });
+        executorService.submit(matchTask);
+        return matchTask;
     }
+
+    // --- Segédfüggvények (CSS osztályokat használnak) ---
 
     private void populateRankingPane(FlowPane pane, List<Parfum.RankingItem> rankings) {
         if (rankings != null) {
@@ -355,223 +447,272 @@ public class ParfumController {
 
     private Node createRankingChip(String text) {
         Label label = new Label(text);
-        label.setStyle(
-                "-fx-background-color: #e0eafc;" +
-                        "-fx-text-fill: #3366cc;" +
-                        "-fx-font-weight: bold;" +
-                        "-fx-padding: 4 8 4 8;" +
-                        "-fx-background-radius: 15;"
-        );
+        label.getStyleClass().add("ranking-chip"); // CSS
         return label;
     }
-
-    // --- API HÍVÁSOK A 3. OSZLOPHOZ (PÁRHUZAMOSÍTVA) ---
-
-    /**
-     * Elindít egy többlépcsős, PÁRHUZAMOSÍTOTT API hívást a 3. oszlop feltöltéséhez.
-     */
+/*
     private void loadSimilarFragrancesParallel(String parfumName, FlowPane resultsPane) {
-        // 1. Lépés: Hívjuk a /similar végpontot (aszinkron)
-        fetchSimilarFragranceNames(parfumName)
-                .thenApply(similarNames -> {
-                    // 2. Lépés: Létrehozunk egy listát a párhuzamos feladatokból
-                    List<CompletableFuture<Parfum>> detailTasks = similarNames.stream()
-                            .map(name -> CompletableFuture.supplyAsync(
-                                    () -> fetchFragranceDetailsByName(name), executorService
-                            ))
-                            .collect(Collectors.toList());
+        // Show loading indicator
+        Platform.runLater(new Runnable() {
+            @Override
+            public void run() {
+                resultsPane.getChildren().clear();
+                Label loadingLabel = new Label("Loading...");
+                loadingLabel.setStyle("-fx-text-fill: #999; -fx-font-style: italic;");
+                resultsPane.getChildren().add(loadingLabel);
+            }
+        });
 
-                    // 3. Lépés: Megvárjuk, amíg MINDEN hívás befejeződik
-                    CompletableFuture.allOf(detailTasks.toArray(new CompletableFuture[0])).join();
-
-                    // 4. Lépés: Begyűjtjük az eredményeket
-                    return detailTasks.stream()
-                            .map(CompletableFuture::join)
-                            .filter(parfum -> parfum != null)
-                            .collect(Collectors.toList());
-                })
-                .thenAccept(fullParfumList -> {
-                    // 5. Lépés: Visszatérés a JavaFX szálra az UI frissítéséhez
-                    Platform.runLater(() -> {
+        // Fetch similar names first
+        fetchSimilarFragranceNames(parfumName).thenAccept(new Consumer<List<String>>() {
+            @Override
+            public void accept(List<String> similarNames) {
+                // Clear loading indicator
+                Platform.runLater(new Runnable() {
+                    @Override
+                    public void run() {
                         resultsPane.getChildren().clear();
-                        if (fullParfumList.isEmpty()) {
-                            resultsPane.getChildren().add(new Label("Nincs hasonló parfüm."));
-                        } else {
-                            for (Parfum p : fullParfumList) {
-                                resultsPane.getChildren().add(createSmallParfumChip(p));
+                    }
+                });
+
+                // Fetch each perfume detail and display immediately when ready
+                for (String name : similarNames) {
+                    CompletableFuture.supplyAsync(new java.util.function.Supplier<Parfum>() {
+                        @Override
+                        public Parfum get() {
+                            return fetchFragranceDetailsByName(name);
+                        }
+                    }, executorService).thenAccept(new Consumer<Parfum>() {
+                        @Override
+                        public void accept(Parfum parfum) {
+                            if (parfum != null) {
+                                Platform.runLater(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        resultsPane.getChildren().add(createSmallParfumChip(parfum));
+                                    }
+                                });
                             }
                         }
                     });
+                }
+            }
+        });
+    }
+*/
+
+    private void loadSimilarFragrancesParallel(String parfumName, FlowPane resultsPane) {
+        // Show loading indicator
+        Platform.runLater(() -> {
+            resultsPane.getChildren().clear();
+            Label loadingLabel = new Label("Loading...");
+            loadingLabel.setStyle("-fx-text-fill: #999; -fx-font-style: italic;");
+            resultsPane.getChildren().add(loadingLabel);
+        });
+
+        // Fetch similar names AND details in parallel batches
+        fetchSimilarFragranceNames(parfumName).thenAccept(similarNames -> {
+            // Clear loading indicator
+            Platform.runLater(() -> resultsPane.getChildren().clear());
+
+            if (similarNames.isEmpty()) {
+                Platform.runLater(() -> {
+                    Label noResultsLabel = new Label("No similar fragrances found");
+                    noResultsLabel.setStyle("-fx-text-fill: #999;");
+                    resultsPane.getChildren().add(noResultsLabel);
                 });
+                return;
+            }
+
+            // OPTIMIZATION: Fetch all details in parallel and collect results
+            List<CompletableFuture<Parfum>> futures = similarNames.stream()
+                    .map(name -> CompletableFuture.supplyAsync(
+                            () -> fetchFragranceDetailsByName(name),
+                            executorService
+                    ))
+                    .collect(Collectors.toList());
+
+            // Wait for ALL to complete, then display in order
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .thenRun(() -> {
+                        // Collect completed results
+                        List<Parfum> parfums = futures.stream()
+                                .map(CompletableFuture::join)
+                                .filter(p -> p != null)
+                                .collect(Collectors.toList());
+
+                        // Display all at once on UI thread
+                        Platform.runLater(() -> {
+                            for (Parfum parfum : parfums) {
+                                resultsPane.getChildren().add(createSmallParfumChip(parfum));
+                            }
+                        });
+                    })
+                    .exceptionally(ex -> {
+                        ex.printStackTrace();
+                        Platform.runLater(() -> {
+                            Label errorLabel = new Label("Error loading similar fragrances");
+                            errorLabel.setStyle("-fx-text-fill: #c00;");
+                            resultsPane.getChildren().add(errorLabel);
+                        });
+                        return null;
+                    });
+        }).exceptionally(ex -> {
+            ex.printStackTrace();
+            Platform.runLater(() -> {
+                resultsPane.getChildren().clear();
+                Label errorLabel = new Label("Error fetching similar names");
+                errorLabel.setStyle("-fx-text-fill: #c00;");
+                resultsPane.getChildren().add(errorLabel);
+            });
+            return null;
+        });
     }
 
 
-    /**
-     * (Háttérszálon futó) 1. Lépés: Lekéri a hasonló parfümök listáját (csak neveket).
-     */
-    private CompletableFuture<List<String>> fetchSimilarFragranceNames(String parfumName) {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                String encodedName = URLEncoder.encode(parfumName, StandardCharsets.UTF_8);
-                String url = API_BASE_URL_SIMILAR + encodedName;
-                HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url)).header("x-api-key", API_KEY).build();
-                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-                if (response.statusCode() == 200) {
-                    Parfum.SimilarApiResponse apiResponse = gson.fromJson(response.body(), Parfum.SimilarApiResponse.class);
-                    if (apiResponse != null && apiResponse.similarFragrances != null) {
-                        return apiResponse.similarFragrances.stream()
-                                .map(sim -> sim.name)
-                                .collect(Collectors.toList());
+    private CompletableFuture<List<String>> fetchSimilarFragranceNames(String parfumName) {
+        return CompletableFuture.supplyAsync(new java.util.function.Supplier<List<String>>() {
+            @Override
+            public List<String> get() {
+                try {
+                    String url = API_BASE_URL_SIMILAR + URLEncoder.encode(parfumName, StandardCharsets.UTF_8);
+                    HttpResponse<String> response = httpClient.send(HttpRequest.newBuilder().uri(URI.create(url)).header("x-api-key", API_KEY).build(), HttpResponse.BodyHandlers.ofString());
+                    if (response.statusCode() == 200) {
+                        Parfum.SimilarApiResponse api = gson.fromJson(response.body(), Parfum.SimilarApiResponse.class);
+                        if (api != null && api.similarFragrances != null) {
+                            List<String> names = new ArrayList<>();
+                            for (Parfum.SimilarFragrance sf : api.similarFragrances) {
+                                names.add(sf.name);
+                            }
+                            return names;
+                        }
                     }
+                    return new ArrayList<>();
+                } catch (Exception e) {
+                    return new ArrayList<>();
                 }
-                return new ArrayList<String>();
-            } catch (Exception e) {
-                e.printStackTrace();
-                return new ArrayList<String>();
             }
         }, executorService);
     }
 
-    /**
-     * (Háttérszálon futó) 2. Lépés: Lekéri egyetlen parfüm teljes adatlapját a neve alapján.
-     */
     private Parfum fetchFragranceDetailsByName(String parfumName) {
         try {
-            String encodedName = URLEncoder.encode(parfumName, StandardCharsets.UTF_8);
-            String url = API_BASE_URL_SEARCH.replace("limit=20", "limit=1") + encodedName;
-
-            HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url)).header("x-api-key", API_KEY).build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
+            String url = API_BASE_URL_SEARCH.replace("limit=20", "limit=1") + URLEncoder.encode(parfumName, StandardCharsets.UTF_8);
+            HttpResponse<String> response = httpClient.send(HttpRequest.newBuilder().uri(URI.create(url)).header("x-api-key", API_KEY).build(), HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() == 200) {
-                Type typeToken = new TypeToken<ArrayList<Parfum>>(){}.getType();
-                List<Parfum> parfums = gson.fromJson(response.body(), typeToken);
-                if (parfums != null && !parfums.isEmpty()) {
-                    return parfums.get(0);
-                }
+                List<Parfum> l = gson.fromJson(response.body(), new TypeToken<ArrayList<Parfum>>(){}.getType());
+                if (l != null && !l.isEmpty()) return l.get(0);
             }
             return null;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
+        } catch (Exception e) { return null; }
     }
 
-    /** Létrehoz egy kis parfüm "chipet" a 3. oszlophoz. (JAVÍTVA) */
     private Node createSmallParfumChip(Parfum parfum) {
         VBox chip = new VBox(5);
         chip.setAlignment(Pos.TOP_CENTER);
         chip.setPrefWidth(90);
-        chip.setStyle("-fx-cursor: hand;");
+        chip.getStyleClass().add("perfume-card"); // CSS
 
         ImageView icon = new ImageView();
-        icon.setFitHeight(80);
-        icon.setFitWidth(80);
-        icon.setPreserveRatio(true);
-
-        // --- JAVÍTÁS (NULL-BIZTOS ÉS HIBATŰRŐ KÉPBETÖLTÉS) ---
+        icon.setFitHeight(80); icon.setFitWidth(80); icon.setPreserveRatio(true);
         try {
-            if (parfum.imageUrl != null && !parfum.imageUrl.isEmpty()) {
-                Image img = new Image(parfum.imageUrl.replace(".jpg", ".webp"), true);
-                img.errorProperty().addListener((obs, old, err) -> {
-                    if (err) System.err.println("Hiba a 'similar' chip kép betöltésekor: " + parfum.imageUrl);
-                });
-                icon.setImage(img);
-            }
-        } catch (Exception e) {
-            System.err.println("Hiba a 'similar' chip URL feldolgozásakor: " + e.getMessage());
-        }
-        // --- JAVÍTÁS VÉGE ---
+            if (parfum.imageUrl != null) icon.setImage(new Image(parfum.imageUrl, true));
+        } catch (Exception e) {}
 
         Label nameLabel = new Label(parfum.name);
-        nameLabel.setStyle("-fx-font-size: 11px; -fx-text-alignment: center; -fx-wrap-text: true;");
+        nameLabel.getStyleClass().add("card-label"); // CSS
+        nameLabel.setWrapText(true);
         nameLabel.setPrefWidth(90);
 
         chip.getChildren().addAll(icon, nameLabel);
-
-        chip.setOnMouseClicked((e) -> {
-            displayParfumDetails(parfum);
+        chip.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent e) {
+                displayParfumDetails(parfum);
+            }
         });
-
         return chip;
     }
-
-
-    // --- Segédfüggvények a 2. Oszlophoz ---
 
     private void populateAccordsPane(VBox pane, Map<String, String> accords) {
         if (accords != null) {
             Map<String, Integer> strengthOrder = Map.of("Dominant", 1, "Prominent", 2, "Moderate", 3, "Subtle", 4, "Trace", 5);
             String[] colors = {"#d6bcf0", "#c9899a", "#b0a0b0", "#d3a080", "#a0c0b0", "#f0a0a0", "#b0d0d0", "#f0e0a0"};
-            AtomicInteger colorIndex = new AtomicInteger(0);
-            List<Map.Entry<String, String>> sortedAccords = accords.entrySet().stream()
-                    .sorted(Comparator.comparing(entry -> strengthOrder.getOrDefault(entry.getValue(), 99)))
-                    .collect(Collectors.toList());
-            for (Map.Entry<String, String> entry : sortedAccords) {
-                String color = colors[colorIndex.getAndIncrement() % colors.length];
+            
+            List<Map.Entry<String, String>> sortedEntries = new ArrayList<>(accords.entrySet());
+            sortedEntries.sort(new Comparator<Map.Entry<String, String>>() {
+                @Override
+                public int compare(Map.Entry<String, String> e1, Map.Entry<String, String> e2) {
+                    int order1 = strengthOrder.getOrDefault(e1.getValue(), 99);
+                    int order2 = strengthOrder.getOrDefault(e2.getValue(), 99);
+                    return Integer.compare(order1, order2);
+                }
+            });
+            
+            int colorIndex = 0;
+            for (Map.Entry<String, String> entry : sortedEntries) {
+                String color = colors[colorIndex % colors.length];
                 pane.getChildren().add(createAccordBar(entry.getKey(), entry.getValue(), color));
+                colorIndex++;
             }
         }
     }
 
     private Node createAccordBar(String name, String strength, String color) {
-        double barWidth = getWidthForStrength(strength);
+        double width = 100;
+        if ("Dominant".equals(strength)) width = 300;
+        else if ("Prominent".equals(strength)) width = 250;
+        else if ("Moderate".equals(strength)) width = 200;
+        else if ("Subtle".equals(strength)) width = 150;
+
         Pane bar = new Pane();
-        bar.setPrefSize(barWidth, 30);
-        bar.setStyle("-fx-background-color: " + color + "; -fx-background-radius: 15;");
+        bar.setPrefSize(width, 30);
+        bar.setStyle("-fx-background-color: " + color + ";");
+        bar.getStyleClass().add("accord-bar"); // CSS
+
         Label label = new Label(name);
-        label.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: white; -fx-padding: 0 0 0 10;");
+        label.getStyleClass().add("accord-label"); // CSS
+
         StackPane stack = new StackPane(bar, label);
         stack.setAlignment(Pos.CENTER_LEFT);
-        stack.setMaxWidth(barWidth);
+        stack.setMaxWidth(width);
         return stack;
-    }
-
-    private double getWidthForStrength(String strength) {
-        if (strength == null) return 100;
-        switch (strength) {
-            case "Dominant":  return 300;
-            case "Prominent": return 250;
-            case "Moderate":  return 200;
-            case "Subtle":    return 150;
-            case "Trace":     return 100;
-            default:          return 100;
-        }
     }
 
     private void populateNotePane(FlowPane pane, List<Parfum.NoteDetail> notes) {
         if (notes != null) {
-            for (Parfum.NoteDetail note : notes) {
-                pane.getChildren().add(createNoteChip(note));
+            for (Parfum.NoteDetail n : notes) {
+                pane.getChildren().add(createNoteChip(n));
             }
         }
     }
 
     private Node createNoteChip(Parfum.NoteDetail note) {
-        Image img = new Image(note.imageUrl, true);
-        ImageView icon = new ImageView(img);
+        ImageView icon = new ImageView(new Image(note.imageUrl, true));
         icon.setFitHeight(30); icon.setFitWidth(30);
         Label nameLabel = new Label(note.name);
-        nameLabel.setStyle("-fx-font-size: 14px;");
+        nameLabel.getStyleClass().add("note-label"); // CSS
         HBox chip = new HBox(8, icon, nameLabel);
         chip.setAlignment(Pos.CENTER_LEFT);
-        chip.setStyle("-fx-background-color: #f0f0f0; -fx-padding: 8px 12px 8px 12px; -fx-background-radius: 20px;");
+        chip.getStyleClass().add("note-chip"); // CSS
         return chip;
     }
 
-    // --- ViewFactory (Belső osztályként) ---
+    // --- ViewFactory (Tiszta CSS-es verzió) ---
     private static class ViewFactory {
         public static VBox buildHomePage() {
             VBox homeVBox = new VBox(25);
             homeVBox.setPadding(new Insets(20));
             Label welcomeLabel = new Label("Üdvözlünk a Sharqi alkalmazásban!");
-            welcomeLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
+            welcomeLabel.getStyleClass().add("title-label"); // CSS
             Label subLabel = new Label("A tökéletes parfüm kereső.");
-            subLabel.setStyle("-fx-font-size: 16px; -fx-text-fill: #555555;");
+            subLabel.getStyleClass().add("subtitle-label"); // CSS
+
+            // ... (többi része változatlan) ...
             VBox maleBox = createTop3Box("Top 3 Male Fragrance", new String[][]{
                     {"Dior Homme Intense", "https://d2k6fvhyk5xgx.cloudfront.net/images/dior-homme-intense.jpg"},
-                    {"Bleu de Chanel", "https://d2k6fvhyk5xgx.cloudfront.net/images/chanel-bleu-de-chanel.jpg"},
+                    {"YSL La Nuit De L'Homme", "https://d2k6fvhyk5xgx.cloudfront.net/images/la-nuit-de-lhomme-yves-saint-laurent.jpg"},
                     {"Creed Aventus", "https://d2k6fvhyk5xgx.cloudfront.net/images/creed-aventus.jpg"}
             });
             VBox unisexBox = createTop3Box("Top 3 Unisex Fragrance", new String[][]{
@@ -587,7 +728,7 @@ public class ParfumController {
         private static VBox createTop3Box(String title, String[][] fragrances) {
             VBox box = new VBox(10);
             Label titleLabel = new Label(title);
-            titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+            titleLabel.getStyleClass().add("subsection-title"); // CSS
             HBox cardsHBox = new HBox(15);
             for (String[] parfum : fragrances) {
                 cardsHBox.getChildren().add(createPerfumeCard(parfum[0], parfum[1]));
@@ -600,15 +741,12 @@ public class ParfumController {
             VBox card = new VBox(5);
             card.setAlignment(Pos.TOP_CENTER);
             card.setPrefWidth(120);
-            card.setStyle("-fx-padding: 5px; -fx-border-color: #eee; -fx-border-width: 1; -fx-border-radius: 5; -fx-background-radius: 5;");
+            card.getStyleClass().add("perfume-card"); // CSS
             ImageView imageView = new ImageView(new Image(imageUrl, true));
-            imageView.setFitHeight(100);
-            imageView.setFitWidth(100);
-            imageView.setPreserveRatio(true);
+            imageView.setFitHeight(100); imageView.setFitWidth(100); imageView.setPreserveRatio(true);
             Label nameLabel = new Label(name);
-            nameLabel.setStyle("-fx-font-size: 13px; -fx-text-alignment: center;");
-            nameLabel.setWrapText(true);
-            nameLabel.setPrefHeight(40);
+            nameLabel.getStyleClass().add("card-label"); // CSS
+            nameLabel.setWrapText(true); nameLabel.setPrefHeight(40);
             card.getChildren().addAll(imageView, nameLabel);
             return card;
         }

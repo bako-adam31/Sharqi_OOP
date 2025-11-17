@@ -12,7 +12,10 @@ public class ParfumApplication extends Application {
     public void start(Stage stage) throws IOException {
         FXMLLoader fxmlLoader = new FXMLLoader(ParfumApplication.class.getResource("parfum-view.fxml"));
         Scene scene = new Scene(fxmlLoader.load(), 1200, 750);
-        stage.setTitle("Parfum Kereso");
+
+        scene.getStylesheets().add(getClass().getResource("/styles.css").toExternalForm());
+
+        stage.setTitle("Sharqi - Parfum");
         stage.setScene(scene);
         stage.setMaximized(true);
 
