@@ -1,6 +1,6 @@
 package org.example.sharqi;
 
-// 8. pont: Származtatott osztály (3/3)
+//Szarmaztatott osztaly
 public class DesignerFragrance extends Parfum {
     public DesignerFragrance(String name, String brand) {
         super(name, brand, "High End");

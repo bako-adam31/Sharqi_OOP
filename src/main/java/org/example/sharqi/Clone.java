@@ -1,6 +1,6 @@
 package org.example.sharqi;
 
-// 8. pont: Származtatott osztály (2/3)
+//Szarmaztatott osztaly
 public class Clone extends Parfum {
     private String inspiration;
 

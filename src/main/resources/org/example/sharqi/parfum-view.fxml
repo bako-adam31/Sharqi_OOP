@@ -15,28 +15,40 @@
     <children>
         <SplitPane fx:id="mainSplitPane" dividerPositions="0.2" VBox.vgrow="ALWAYS">
             <items>
-                <AnchorPane fx:id="leftMenuPane" maxWidth="250.0" minWidth="250.0" prefWidth="250.0" style="-fx-background-color: #f8f8f8; -fx-border-color: #e0e0e0; -fx-border-width: 0 1 0 0;">
+                <AnchorPane fx:id="leftMenuPane" maxWidth="250.0" minWidth="250.0" prefWidth="250.0">
                     <children>
-                        <VBox alignment="TOP_CENTER" spacing="10.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                        <VBox alignment="TOP_CENTER" spacing="5.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
                             <children>
-                                <Label text="Sharqi" style="-fx-font-size: 28px; -fx-font-weight: bold;">
+                                <Label text="Sharqi" styleClass="app-title">
                                     <VBox.margin>
-                                        <Insets bottom="20.0" top="20.0" />
+                                        <Insets bottom="20.0" top="10.0" />
                                     </VBox.margin>
                                 </Label>
-                                <Button fx:id="homeButton" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onHomeClick" style="-fx-font-size: 14px;" text="Home" />
-                                <Button fx:id="searchButton" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onSearchClick" style="-fx-font-size: 14px;" text="Search" />
-                                <Button fx:id="filterButton" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onFilterClick" style="-fx-font-size: 14px;" text="Filter Search" />
-                                <Button fx:id="cloneButton" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onCloneClick" style="-fx-font-size: 14px;" text="Clone Of" />
+
+                                <Button fx:id="homeButton" text="🏠  Home"
+                                        styleClass="nav-button"
+                                        maxWidth="1.7976931348623157E308" onAction="#onHomeClick" />
+
+                                <Button fx:id="searchButton" text="🔍  Search"
+                                        styleClass="nav-button"
+                                        maxWidth="1.7976931348623157E308" onAction="#onSearchClick" />
+
+                                <Button fx:id="filterButton" text="🧪  Filter Search"
+                                        styleClass="nav-button"
+                                        maxWidth="1.7976931348623157E308" onAction="#onFilterClick" />
+
+                                <Button fx:id="cloneButton" text="🧬  Clone Of"
+                                        styleClass="nav-button"
+                                        maxWidth="1.7976931348623157E308" onAction="#onCloneClick" />
                             </children>
                             <padding>
-                                <Insets left="15.0" right="15.0" />
+                                <Insets right="20.0" />
                             </padding>
                         </VBox>
                     </children>
                 </AnchorPane>
 
-                <ScrollPane fx:id="contentScrollPane" fitToWidth="true" hbarPolicy="NEVER" style="-fx-background-color: #FFFFFF;">
+                <ScrollPane fx:id="contentScrollPane" fitToWidth="true" hbarPolicy="NEVER" style="-fx-background-color: transparent;">
                     <content>
                         <AnchorPane fx:id="contentPane" />
                     </content>

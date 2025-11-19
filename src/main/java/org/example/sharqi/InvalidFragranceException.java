@@ -1,6 +1,6 @@
 package org.example.sharqi;
 
-// 16. pont: Saját kivétel (exception) létrehozása
+//exeption
 public class InvalidFragranceException extends Exception {
     public InvalidFragranceException(String message) {
         super(message);

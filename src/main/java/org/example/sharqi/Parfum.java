@@ -6,14 +6,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-// 8. pont: Származtatott osztály (1/3) - Parfum örököl a Fragrance-ból
+//Szarmaztatott osztaly
 public class Parfum extends Fragrance {
 
     @SerializedName("Name")
-    public String name;  // Ez felülírja (shadow) az ősosztály name mezőjét, hogy a GSON lássa
+    public String name;
 
     @SerializedName("Brand")
-    public String brand; // Ez felülírja az ősosztály brand mezőjét
+    public String brand;
 
     @SerializedName("Image URL")
     public String imageUrl;
@@ -46,34 +46,34 @@ public class Parfum extends Fragrance {
     @SerializedName("Occasion")
     public String occasion;
 
-    // --- EZT A RÉSZT JAVÍTSD ÁT: ---
-    @SerializedName("Main Accords")
-    public List<String> mainAccords; // String helyett List<String> legyen!
 
-    // 10. pont: Túlterhelt konstruktor (Overloading) - 1. Üres konstruktor
+    @SerializedName("Main Accords")
+    public List<String> mainAccords;
+
+    //overlaoding ures konstruktor
     public Parfum() {
     }
 
-    // 10. pont: Túlterhelt konstruktor (Overloading) - 2. Paraméteres
+    // overloading parameteres
     public Parfum(String name, String brand, String price) {
         this.name = name;
         this.brand = brand;
         this.price = price;
     }
 
-    // 12. pont: Felülírt metódus (Overriding) az absztrakt osztályból
+    // overriding from abstract class
     @Override
     public String getTypeCategory() {
         return (oilType != null) ? oilType : "Unknown Type";
     }
 
-    // 14. pont: Felülírt toString()
+    // to string
     @Override
     public String toString() {
         return (brand != null ? brand : "Unknown") + " - " + (name != null ? name : "Unknown");
     }
 
-    // 15. pont: equals() metódusra példa
+    // equals metodus
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -87,7 +87,6 @@ public class Parfum extends Fragrance {
         return Objects.hash(name, brand);
     }
 
-    // --- Belső osztályok ---
     public static class ParfumNotes {
         @SerializedName("Top") public List<NoteDetail> top;
         @SerializedName("Middle") public List<NoteDetail> middle;
@@ -112,12 +111,10 @@ public class Parfum extends Fragrance {
     public static class SimilarFragrance {
         @SerializedName("Name") public String name;
     }
-// --- SEGÉDFÜGGVÉNYEK A SZŰRÉSHEZ ---
 
-    /**
-     * Ellenőrzi, hogy a parfüm megfelelő-e a megadott évszakra.
-     * Akkor tekintjük megfelelőnek, ha az adott évszak pontszáma magas (> 0.6).
-     */
+    // szures, ha evszak>0.6
+
+
     public boolean isAppropriateForSeason(String seasonName) {
         if (seasonRanking == null || seasonName == null || seasonName.equals("Any")) return true;
         for (RankingItem item : seasonRanking) {
@@ -129,9 +126,8 @@ public class Parfum extends Fragrance {
         return false;
     }
 
-    /**
-     * Ellenőrzi, hogy a parfüm megfelelő-e a megadott alkalomra.
-     */
+// ellenorzes, megfelel e az occasionre?
+
     public boolean isAppropriateForOccasion(String occasionName) {
         if (occasionRanking == null || occasionName == null || occasionName.equals("Any")) return true;
         for (RankingItem item : occasionRanking) {
@@ -142,15 +138,12 @@ public class Parfum extends Fragrance {
         return false;
     }
 
-    /**
-     * Ellenőrzi, hogy a parfüm neme egyezik-e a keresettel.
-     */
+//ellenorzes; egyenlo a keresettel?
     public boolean matchesGender(String genderFilter) {
         if (gender == null || genderFilter == null || genderFilter.equals("Any")) return true;
         return gender.equalsIgnoreCase(genderFilter);
     }
 
-    // --- Egyéb segédek ---
     public String getDominantSeason() {
         if (seasonRanking != null && !seasonRanking.isEmpty()) return seasonRanking.get(0).name;
         return "";

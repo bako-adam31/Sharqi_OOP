@@ -1,19 +1,47 @@
 /* styles.css */
 
 /* Általános */
+
+/* 1. A FŐ HÁTTÉRKÉP BEÁLLÍTÁSA */
+.root {
+    -fx-font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+    /* Ide tedd a képed nevét. Ha a resources mappában van közvetlenül: */
+    -fx-background-image: url("images/background.jpg");
+    -fx-background-repeat: no-repeat;
+    -fx-background-size: cover;
+    -fx-background-position: center;
+}
+
+/* 2. AZ ELTAKARÓ ELEMEK ÁTLÁTSZÓVÁ TÉTELE (KÖTELEZŐ!) */
+.split-pane,
+.split-pane .split-pane-divider,
+.scroll-pane,
+.scroll-pane .viewport,
+.grid-pane,
+.tab-pane {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+/* A bal oldali menü legyen kicsit opálos (üveg hatás), hogy olvasható legyen */
+#leftMenuPane {
+    -fx-background-color: rgba(255, 255, 255, 0.75); /* 75% fehér */
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 10, 0, 0, 0);
+}
+
 .root {
     -fx-font-family: "Segoe UI", Helvetica, Arial, sans-serif;
 }
 
 /* Címkék */
 .title-label {
-    -fx-font-size: 24px;
+    -fx-font-size: 36px;
     -fx-font-weight: bold;
 }
 
 .subtitle-label {
-    -fx-font-size: 16px;
-    -fx-text-fill: #555555;
+    -fx-font-size: 26px;
+    -fx-text-fill: #ffffff;
 }
 
 .section-title {
@@ -45,6 +73,8 @@
 .card-label {
     -fx-font-size: 13px;
     -fx-text-alignment: center;
+    -fx-text-fill: #333333; /* EZ HIÁNYZOTT: Sötétszürke szín */
+    -fx-font-weight: bold;
 }
 
 /* Részletes Nézet (Details View) */
@@ -120,7 +150,9 @@
 }
 
 .note-label {
-    -fx-font-size: 16px;
+    -fx-font-size: 14px; /* Kicsit kisebb, hogy jobban kiférjen */
+    -fx-text-fill: #333333; /* EZ HIÁNYZOTT: Sötétszürke szín */
+    -fx-font-weight: bold;
 }
 
 /* Accord Bar */
@@ -166,11 +198,11 @@
     -fx-font-size: 12px;
 }
 
-/* A parfüm neve */
 .card-title {
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-font-size: 16px;
     -fx-font-weight: bold;
-    -fx-font-size: 15px;
-    -fx-text-fill: #222222;
+    -fx-text-fill: #222222; /* Fekete szín biztosítása */
 }
 
 /* Az alsó kis illatjegy címkék (leather, woody) */
@@ -180,4 +212,340 @@
     -fx-padding: 4 10 4 10;
     -fx-font-size: 11px;
     -fx-text-fill: #5C4B08;
+}
+
+
+/* --- MODERN CARD DESIGN --- */
+
+/* A kártya kerete - EZ FOGJA ÖSSZE A DESIGNT */
+.result-card {
+    -fx-background-color: white; /* Fehér háttér */
+    -fx-background-radius: 15;   /* Lekerekített sarkok */
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 2, 5); /* Finom árnyék */
+    -fx-padding: 0; /* A paddingot belül kezeljük, hogy a kép széléig érjen */
+    -fx-min-width: 240px;
+    -fx-max-width: 240px;
+    -fx-cursor: hand;
+}
+
+/* Hover effekt: kicsit megemelkedik */
+.result-card:hover {
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 15, 0, 4, 8);
+    -fx-translate-y: -3;
+}
+
+/* Az ár címke (bal felül) */
+.price-badge {
+    -fx-background-color: rgba(255, 255, 255, 0.9);
+    -fx-background-radius: 20;
+    -fx-padding: 4 10;
+    -fx-text-fill: #1a1a1a;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 2, 0, 0, 1);
+}
+
+/* A nem címke (jobb felül) */
+.gender-badge {
+    -fx-background-color: #6C63FF; /* Modern lila */
+    -fx-text-fill: white;
+    -fx-background-radius: 20;
+    -fx-padding: 4 10;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 2, 0, 0, 1);
+}
+
+/* Parfüm neve */
+.card-title {
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2D2D2D;
+}
+
+/* Márka neve */
+.card-brand {
+    -fx-font-size: 13px;
+    -fx-text-fill: #888888;
+    -fx-font-style: italic;
+}
+
+/* Adatok (év, rating) dobozai */
+.info-tag {
+    -fx-background-color: #F3F4F6;
+    -fx-text-fill: #555;
+    -fx-background-radius: 5;
+    -fx-padding: 3 8;
+    -fx-font-size: 11px;
+}
+
+/* Csillagozás */
+.rating-tag {
+    -fx-background-color: #FFFBEB;
+    -fx-text-fill: #B45309; /* Aranybarna */
+    -fx-border-color: #FCD34D;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-padding: 2 8;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+/* Alsó illatjegyek */
+.accord-pill {
+    -fx-padding: 4 8;
+    -fx-background-radius: 10;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+}
+
+/* --- MODERN FILTER FORM --- */
+
+/* A szűrő doboz (fehér kártya) */
+.filter-box {
+    -fx-background-color: white;
+    -fx-background-radius: 20;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 20, 0, 0, 5);
+    -fx-padding: 30;
+    -fx-min-width: 320px; /* Fix szélesség, hogy ne legyen túl keskeny */
+}
+
+/* A cím (pl. "Filter by Notes") */
+.filter-title {
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2D2D2D;
+    -fx-padding: 0 0 20 0; /* Hely a cím alatt */
+}
+
+/* A mezők nevei (pl. "Top Note:") */
+.input-label {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #6B7280; /* Szürkés */
+}
+
+/* Maguk a beviteli mezők */
+.modern-input {
+    -fx-background-color: #F9FAFB; /* Nagyon halvány szürke */
+    -fx-border-color: #E5E7EB;     /* Halvány keret */
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 10;
+    -fx-font-size: 14px;
+    -fx-prompt-text-fill: #9CA3AF;
+}
+
+/* Amikor belekattintasz a mezőbe */
+.modern-input:focused {
+    -fx-background-color: white;
+    -fx-border-color: #6C63FF; /* Lila fókusz keret */
+    -fx-effect: dropshadow(three-pass-box, rgba(108, 99, 255, 0.2), 5, 0, 0, 2);
+}
+
+/* A "Find Matches" gomb */
+.action-button {
+    -fx-background-color: linear-gradient(to right, #6C63FF, #8B5CF6); /* Lila színátmenet */
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 15px;
+    -fx-background-radius: 8;
+    -fx-padding: 12 20;
+    -fx-cursor: hand;
+    -fx-alignment: center;
+}
+
+.action-button:hover {
+    -fx-background-color: linear-gradient(to right, #5B54E0, #7C3AED);
+    -fx-effect: dropshadow(three-pass-box, rgba(108, 99, 255, 0.4), 10, 0, 0, 3);
+    -fx-translate-y: -1;
+}
+
+.action-button:pressed {
+    -fx-translate-y: 1;
+}
+
+/* styles.css */
+
+
+/* Modern Keresőmező Konténer */
+.search-container {
+    -fx-background-color: white;
+    -fx-background-radius: 15;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 10, 0, 0, 3);
+    -fx-padding: 20;
+    -fx-alignment: center-left;
+}
+
+/* Ha üres a találati lista, ez a szöveg jelenik meg */
+.placeholder-label {
+    -fx-text-fill: #999;
+    -fx-font-size: 18px;
+    -fx-font-style: italic;
+}
+
+/* --- MODERN SIDEBAR --- */
+
+/* A bal oldali panel háttere */
+#leftMenuPane {
+    -fx-background-color: white;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 10, 0, 0, 0); /* Finom árnyék jobbra */
+    -fx-border-color: transparent #EEEEEE transparent transparent; /* Vékony elválasztó vonal */
+    -fx-border-width: 1;
+}
+
+/* Az alkalmazás címe (Sharqi) */
+.app-title {
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-font-size: 62px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0c00fa; /* A modern lila színünk */
+    -fx-padding: 30 0 40 0; /* Térköz felette és alatta */
+    -fx-effect: dropshadow(three-pass-box, rgba(108, 99, 255, 0.3), 0, 0, 0, 2);
+}
+
+/* A navigációs gombok alapállapota */
+.nav-button {
+    -fx-background-color: transparent; /* Nincs szürke háttér! */
+    -fx-text-fill: #666666;           /* Sötétszürke szöveg */
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-alignment: BASELINE_LEFT;     /* Balra igazítjuk a szöveget */
+    -fx-padding: 12 20 12 30;         /* Kényelmes térköz */
+    -fx-cursor: hand;
+    -fx-background-radius: 0 30 30 0; /* Csak a jobb oldala legyen kerek */
+    -fx-border-width: 0 0 0 0;        /* Nincs keret */
+}
+
+/* Amikor ráviszed az egeret (Hover) */
+.nav-button:hover {
+    -fx-background-color: #F3F0FF;    /* Nagyon halvány lila háttér */
+    -fx-text-fill: #6C63FF;           /* Lila szöveg */
+    -fx-padding: 12 20 12 35;         /* Kicsit "arrébb ugrik", animációs hatás */
+}
+
+/* Amikor le van nyomva */
+.nav-button:pressed {
+    -fx-background-color: #E0D4FC;
+}
+
+/* --- MODERN DETAILS VIEW --- */
+
+/* A fő panelek (fehér kártyák) */
+.details-card {
+    -fx-background-color: rgba(255, 255, 255, 0.95);
+    -fx-background-radius: 20;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 15, 0, 0, 5);
+    -fx-padding: 25;
+    /* ADD HOZZÁ EZT: */
+    -fx-text-fill: #333333;
+}
+
+/* Szekció címek (pl. "Main Accords") */
+.details-section-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2D2D2D;
+    -fx-padding: 0 0 10 0;
+}
+
+/* Kis adat címkék (pl. Évszám, Ország) */
+.stat-box {
+    -fx-background-color: #F9FAFB;
+    -fx-background-radius: 10;
+    -fx-padding: 8 12;
+    -fx-alignment: center;
+}
+
+.stat-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: #6B7280;
+    -fx-font-weight: bold;
+    -fx-text-transform: uppercase;
+}
+
+.stat-value {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #111827;
+}
+
+/* Sillage / Longevity badgek */
+.performance-badge {
+    -fx-padding: 5 10;
+    -fx-background-radius: 8;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+}
+.perf-strong { -fx-background-color: #DCFCE7; -fx-text-fill: #166534; } /* Zöld */
+.perf-moderate { -fx-background-color: #FEF9C3; -fx-text-fill: #854D0E; } /* Sárga */
+
+/* Illatjegyek (Notes) */
+.modern-note-chip {
+    -fx-background-color: #F3F4F6;
+    -fx-background-radius: 20;
+    -fx-padding: 6 12;
+    -fx-border-color: #E5E7EB;
+    -fx-border-radius: 20;
+}
+
+/* --- MODERN HOME PAGE (GLASSMORPHISM) --- */
+
+/* A főcím stílusa */
+.hero-title {
+    -fx-font-family: "Segoe UI Light", sans-serif; /* Vékonyabb, elegánsabb betűtípus */
+    -fx-font-size: 32px;
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 10, 0, 0, 2);
+}
+
+/* Az alcím */
+.hero-subtitle {
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-font-size: 16px;
+    -fx-text-fill: #cccccc; /* Világosszürke */
+    -fx-padding: 0 0 20 0;
+}
+
+/* Üveghatású kártya (Glass Card) */
+.glass-card {
+    -fx-background-color: rgba(255, 255, 255, 0.1); /* Nagyon átlátszó fehér */
+    -fx-background-radius: 20;
+    -fx-border-color: rgba(255, 255, 255, 0.2); /* Vékony, alig látható keret */
+    -fx-border-radius: 20;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 20, 0, 0, 10); /* Erős árnyék */
+    -fx-cursor: hand;
+    -fx-padding: 15;
+    -fx-alignment: top-center;
+    -fx-min-width: 160px;
+    -fx-max-width: 160px;
+}
+
+/* Hover effekt: kivilágosodik és megemelkedik */
+.glass-card:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.2); /* Kicsit fehérebb lesz */
+    -fx-translate-y: -5; /* Feljebb ugrik */
+    -fx-border-color: rgba(255, 255, 255, 0.5); /* A keret kifényesedik */
+}
+
+/* A kártyán lévő szöveg */
+.glass-card-label {
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-alignment: center;
+    -fx-effect: dropshadow(one-pass-box, black, 2, 0, 0, 1); /* Szöveg árnyéka az olvashatóságért */
+}
+
+/* Kategória címek (pl. Top 3 Male) */
+.category-header {
+    -fx-text-fill: #E0D4FC; /* Halványlila */
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 0 10 0;
+    -fx-border-color: transparent transparent rgba(255,255,255,0.2) transparent; /* Vonal alatta */
+    -fx-border-width: 1;
 }
