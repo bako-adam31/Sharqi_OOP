@@ -165,7 +165,7 @@ public class ParfumController {
         AnchorPane.setRightAnchor(searchPageLayout, 0.0);
     }
 
-    // Ez végzi a keresést és frissíti a rácsot
+    // kereses, racs frissites
     private void performGridSearch(String searchTerm, TilePane resultsGrid) {
         if (searchTerm == null || searchTerm.trim().isEmpty()) return;
 
@@ -222,7 +222,6 @@ public class ParfumController {
     }
 
 
-// --- MODERN RÉSZLETES NÉZET ---
 
     private void displayParfumDetails(Parfum parfum) {
         // 1. BAL OSZLOP: Kép és Alapadatok
@@ -255,7 +254,7 @@ public class ParfumController {
         AnchorPane.setRightAnchor(scrollPane, 0.0);
     }
 
-    // 1. Kártya: Kép, Ár, Statisztikák
+    // kartya: kep ar statisztika
     private VBox buildLeftCard(Parfum p) {
         VBox card = new VBox(20);
         card.getStyleClass().add("details-card");
@@ -343,29 +342,24 @@ public class ParfumController {
 
 
 
-    // Új segédfüggvény a rangsoroló sávokhoz (Season/Occasion)
 
-// --- ÚJ METÓDUSOK A SZÍNES SÁVOKHOZ (Season/Occasion) ---
-
-    // 1. Ez számolja ki az arányokat és rajzolja ki a sávokat
+    // savok kirajzolasa
     private void populateRankingBars(VBox container, List<Parfum.RankingItem> items) {
         if (items == null || items.isEmpty()) return;
 
-        // Rendezés: a legnagyobb pontszámú legyen elöl
+        // legnagyobb pontszamu elol
         items.sort((a, b) -> Double.compare(b.score, a.score));
 
-        // Megkeressük a legmagasabb pontszámot a listában (ez lesz a 100% szélesség alapja)
+        // a legmagasabb pontszam lesz a 100%
         double maxScore = items.stream()
                 .mapToDouble(i -> i.score)
                 .max()
                 .orElse(1.0);
 
         for (Parfum.RankingItem item : items) {
-            if (item.score > 0) { // Csak ami kapott szavazatot
+            if (item.score > 0) {
                 String color = getSeasonOrOccasionColor(item.name);
 
-                // Kiszámoljuk az arányos szélességet (max 280px)
-                // Képlet: (aktuális / maximum) * 280
                 double MAX_WIDTH = 280.0;
                 double calculatedWidth = (item.score / maxScore) * MAX_WIDTH;
 
@@ -375,77 +369,69 @@ public class ParfumController {
         }
     }
 
-    // 2. Ez hoz létre egyetlen színes sávot a megadott szélességgel
     private Node createSingleRankingBar(String name, double width, String color) {
-        // Minimum 70px szélesség, hogy a szöveg kiférjen akkor is, ha kicsi a pontszám
         if (width < 70) width = 70;
 
         Pane bar = new Pane();
-        bar.setPrefSize(width, 28); // 28px magas sáv
+        bar.setPrefSize(width, 28);
         bar.setStyle("-fx-background-color: " + color + "; -fx-background-radius: 8;");
 
         Label label = new Label(name);
-        // Alapból fehér szöveg
         label.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 0 0 0 10;");
 
-        // Ha nagyon világos a sáv (pl. sárga), legyen sötét a betű, hogy olvasható legyen
         if (color.equals("#facc15") || color.equals("#fef08a")) {
             label.setStyle("-fx-text-fill: #444; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 0 0 0 10;");
         }
 
         StackPane stack = new StackPane(bar, label);
         stack.setAlignment(Pos.CENTER_LEFT);
-        VBox.setMargin(stack, new Insets(2, 0, 2, 0)); // Kis térköz a sávok között
+        VBox.setMargin(stack, new Insets(2, 0, 2, 0));
 
         return stack;
     }
 
-    // 3. Ez adja meg a színeket a nevek alapján
+    // szin megadas nev alapjan
     private String getSeasonOrOccasionColor(String name) {
         name = name.toLowerCase();
-        // Évszakok
-        if (name.contains("winter")) return "#3b82f6"; // Kék
-        if (name.contains("spring")) return "#84cc16"; // Zöld
-        if (name.contains("summer")) return "#facc15"; // Sárga
-        if (name.contains("fall") || name.contains("autumn")) return "#d97706"; // Barna
 
-        // Alkalmak
-        if (name.contains("day")) return "#fef08a"; // Halványsárga
-        if (name.contains("night")) return "#1e293b"; // Sötétkék
-        if (name.contains("date")) return "#ec4899"; // Pink
-        if (name.contains("office") || name.contains("work")) return "#94a3b8"; // Szürke
+        if (name.contains("winter")) return "#3b82f6"; //kek
+        if (name.contains("spring")) return "#84cc16"; //zold
+        if (name.contains("summer")) return "#facc15"; //sarga
+        if (name.contains("fall") || name.contains("autumn")) return "#d97706"; // barna
 
-        return "#cbd5e1"; // Alapértelmezett szürke
+        if (name.contains("day")) return "#fef08a"; // sarga
+        if (name.contains("night")) return "#1e293b"; // kek
+        if (name.contains("date")) return "#ec4899"; // pink
+        if (name.contains("office") || name.contains("work")) return "#94a3b8"; // szurke
+
+        return "#cbd5e1"; // alapértelmezett szin
     }
 
 
 
-    // ÚJ SEGÉDFÜGGVÉNY A PERFORMANCE SOROKHOZ
     private HBox createPerformanceRow(String labelText, String valueText) {
-        // 1. Címke (Bal oldal)
         Label lbl = new Label(labelText);
-        // Sötétszürke szín (#444), félkövér, nagyobb betűméret (14px)
-        lbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #444; -fx-font-size: 14px;");
-        lbl.setMinWidth(100); // Fix szélesség, hogy a plecsnik egymás alá kerüljenek
 
-        // 2. Érték (Jobb oldal - a színes plecsni)
+        lbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #444; -fx-font-size: 14px;");
+        lbl.setMinWidth(100);
+
+
         Label badge = createBadge(valueText);
-        // Felülírjuk a badge stílusát, hogy kicsit nagyobb legyen
         badge.setStyle(badge.getStyle() + "-fx-font-size: 13px; -fx-padding: 6 14;");
 
-        // Sor összerakása
-        HBox row = new HBox(15, lbl, badge); // 15px távolság a címke és az érték között
+        // Sor osszerakasa
+        HBox row = new HBox(15, lbl, badge); // 15px tavolsag
         row.setAlignment(Pos.CENTER_LEFT);
         return row;
     }
 
 
-    // 2. Kártya: Illatprofil
+    // illatprofil
     private VBox buildMiddleCard(Parfum p) {
         VBox card = new VBox(25);
         card.getStyleClass().add("details-card");
         card.setMinWidth(350);
-        HBox.setHgrow(card, Priority.ALWAYS); // Ez nyúljon meg, ha van hely
+        HBox.setHgrow(card, Priority.ALWAYS);
 
         // Main Accords
         VBox accordsBox = new VBox(10);
@@ -453,7 +439,7 @@ public class ParfumController {
         accordsTitle.getStyleClass().add("details-section-title");
         populateAccordsPane(accordsBox, p.mainAccordsPercentage);
 
-        // Illatpiramis (Notes)
+        // notes
         VBox notesBox = new VBox(15);
         Label notesTitle = new Label("Olfactory Pyramid");
         notesTitle.getStyleClass().add("details-section-title");
@@ -466,7 +452,7 @@ public class ParfumController {
         return card;
     }
 
-    // 3. Kártya: Hasonlók
+    //similar frag.
     private VBox buildRightCard(Parfum p) {
         VBox card = new VBox(15);
         card.getStyleClass().add("details-card");
@@ -481,13 +467,11 @@ public class ParfumController {
 
         card.getChildren().addAll(title, similarPane);
 
-        // Aszinkron betöltés indítása
         loadSimilarFragrancesParallel(p.name, similarPane);
 
         return card;
     }
 
-    // --- Új Segédfüggvények ---
 
     private void addStatBox(GridPane grid, int col, int row, String title, String value) {
         VBox box = new VBox(3);
@@ -504,7 +488,7 @@ public class ParfumController {
     private Label createBadge(String text) {
         Label l = new Label(text != null ? text : "Moderate");
         l.getStyleClass().add("performance-badge");
-        // Egyszerű logika a színezésre
+
         if (text != null && (text.toLowerCase().contains("strong") || text.toLowerCase().contains("long"))) {
             l.getStyleClass().add("perf-strong");
         } else {
@@ -512,24 +496,23 @@ public class ParfumController {
         }
         return l;
     }
-// Ezt a metódust cseréld le a ParfumController.java-ban:
 
 
     private VBox createNoteGroup(String title, List<Parfum.NoteDetail> notes) {
         VBox box = new VBox(8);
         Label l = new Label(title);
-        // A szekció címe (pl. "Top Notes") legyen sötétszürke
+
         l.setStyle("-fx-font-weight: bold; -fx-text-fill: #555555;");
 
         FlowPane fp = new FlowPane(8, 8);
         if (notes != null) {
             for (Parfum.NoteDetail n : notes) {
                 HBox chip = new HBox(6);
-                chip.getStyleClass().add("modern-note-chip"); // Ez adja a szürke hátteret
+                chip.getStyleClass().add("modern-note-chip");
                 chip.setAlignment(Pos.CENTER_LEFT);
 
                 ImageView icon = new ImageView();
-                // Biztonságos képbetöltés
+                // kepbetoltes
                 try {
                     if(n.imageUrl != null) {
                         icon.setImage(new Image(n.imageUrl, 24, 24, true, true, true));
@@ -538,8 +521,7 @@ public class ParfumController {
 
                 Label name = new Label(n.name);
 
-                // --- ITT A JAVÍTÁS! ---
-                // Kényszerítjük a sötét színt (#333333) és a méretet
+
                 name.setStyle("-fx-font-size: 13px; -fx-text-fill: #333333; -fx-font-weight: bold;");
 
                 chip.getChildren().addAll(icon, name);
@@ -551,8 +533,6 @@ public class ParfumController {
     }
 
 
-    // Egy apró javítás: kell a 'Separator' importálása
-    // import javafx.scene.control.Separator;
 
     private VBox buildDetailsColumn(Parfum parfum) {
         StackPane imageStack = new StackPane();
@@ -615,7 +595,6 @@ public class ParfumController {
         longevityLabel.getStyleClass().add("longevity-value"); // CSS
         sillageGrid.add(longevityLabel, 1, 1);
 
-        // Stílus a címkéknek
         for (Node node : sillageGrid.getChildren()) {
             if (node instanceof Label && GridPane.getRowIndex(node) != null && GridPane.getRowIndex(node) == 0) {
                 node.getStyleClass().add("info-label-key");
@@ -720,11 +699,11 @@ public class ParfumController {
                 }
             }
         };
-        // ... a többi része a metódusnak változatlan (setOnSucceeded, setOnFailed) ...
+
         apiTask.setOnSucceeded(e -> Platform.runLater(() -> resultsListView.getItems().setAll(apiTask.getValue())));
 
         apiTask.setOnFailed(e -> {
-            // 16. pont: Kivétel elkapása és kiírása
+           // kivetel elkapas es kiiratas
             Throwable error = apiTask.getException();
             if (error instanceof InvalidFragranceException) {
                 System.out.println("Saját hiba elkapva: " + error.getMessage());
@@ -737,21 +716,17 @@ public class ParfumController {
     }
 
 
-
-
-    // ... (A ParfumController többi része változatlan) ...
-
-    // --- MÓDOSÍTOTT FILTER PAGE (CSAK 4 MEZŐ) ---
+    // FILTER PAGE
     private void loadFilterPage() {
-        // 1. A BAL OLDALI SZŰRŐ PANEL LÉTREHOZÁSA
-        VBox filterCard = new VBox(20); // 20px távolság a blokkok között
-        filterCard.getStyleClass().add("filter-box"); // Fehér kártya stílus
+        //bql oldali szuro
+        VBox filterCard = new VBox(20);
+        filterCard.getStyleClass().add("filter-box");
 
-        // Cím
+
         Label titleLabel = new Label("Filter by Notes & Accords");
         titleLabel.getStyleClass().add("filter-title");
 
-        // Input mezők létrehozása (Segédfüggvényt használunk a tisztaságért)
+        // Input letrehozasa
         TextField accordField = new TextField();
         VBox accordBox = createInputGroup("Main Accord", accordField, "Pl. leather");
 
@@ -764,18 +739,16 @@ public class ParfumController {
         TextField baseField = new TextField();
         VBox baseBox = createInputGroup("Base Note", baseField, "Pl. amber");
 
-        // Gomb
         Button findButton = new Button("Find Matches");
         findButton.getStyleClass().add("action-button");
-        findButton.setMaxWidth(Double.MAX_VALUE); // Teljes szélesség
+        findButton.setMaxWidth(Double.MAX_VALUE);
 
-        // Összerakjuk a kártyát
         filterCard.getChildren().addAll(titleLabel, accordBox, topBox, middleBox, baseBox, findButton);
 
-        // 2. JOBB OLDALI EREDMÉNY PANEL (TilePane - ahogy már megcsináltuk)
+        // Jobb oldali eredmeny
         VBox resultsContainer = new VBox(15);
         resultsContainer.setPadding(new Insets(20));
-        HBox.setHgrow(resultsContainer, Priority.ALWAYS); // Kitölti a maradék helyet
+        HBox.setHgrow(resultsContainer, Priority.ALWAYS);
 
         Label resultsTitle = new Label("Matching Perfumes");
         resultsTitle.getStyleClass().add("section-title");
@@ -787,21 +760,21 @@ public class ParfumController {
         resultsPane.setAlignment(Pos.TOP_LEFT);
         resultsPane.setStyle("-fx-padding: 20; -fx-background-color: transparent;");
 
-        // Fontos: ScrollPane kell a TilePane köré, ha sok a találat
+
         ScrollPane scrollWrapper = new ScrollPane(resultsPane);
         scrollWrapper.setFitToWidth(true);
         scrollWrapper.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
         scrollWrapper.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        VBox.setVgrow(scrollWrapper, Priority.ALWAYS); // A görgető töltse ki a helyet
+        VBox.setVgrow(scrollWrapper, Priority.ALWAYS);
 
         resultsContainer.getChildren().addAll(resultsTitle, scrollWrapper);
 
-        // 3. A TELJES OLDAL ÖSSZEÁLLÍTÁSA
+        //teljes oldal
         HBox filterPageLayout = new HBox(30, filterCard, resultsContainer);
-        filterPageLayout.setPadding(new Insets(30)); // Margó az ablak szélétől
-        filterPageLayout.setStyle("-fx-background-color: transparent;"); // Az egész oldal háttere halványszürke
+        filterPageLayout.setPadding(new Insets(30));
+        filterPageLayout.setStyle("-fx-background-color: transparent;");
 
-        // Eseménykezelő
+        // esemenykezelo
         findButton.setOnAction(e -> startApiMatchTask(
                 accordField.getText(),
                 topField.getText(),
@@ -817,9 +790,8 @@ public class ParfumController {
         AnchorPane.setRightAnchor(filterPageLayout, 0.0);
     }
 
-    // Segédfüggvény a modern input mezők létrehozásához
     private VBox createInputGroup(String labelText, TextField textField, String prompt) {
-        VBox group = new VBox(8); // 8px távolság a címke és a mező között
+        VBox group = new VBox(8);
         Label label = new Label(labelText);
         label.getStyleClass().add("input-label");
 
@@ -830,7 +802,7 @@ public class ParfumController {
         return group;
     }
 
-    // --- MÓDOSÍTOTT API MATCH TASK (Csak API hívás, nincs utólagos szűrés) ---
+    // API MATCH TASK
     private Task<List<Parfum>> startApiMatchTask(String accord, String top, String middle, String base, TilePane resultsPane) {
         resultsPane.getChildren().clear();
         resultsPane.getChildren().add(new Label("Keresés..."));
@@ -840,7 +812,7 @@ public class ParfumController {
                 StringBuilder query = new StringBuilder();
                 if (accord != null && !accord.trim().isEmpty()) {
                     String raw = accord.trim();
-                    // Ha nincs megadva százalék, hozzáadjuk a :100-at (vagy :10-et)
+
                     query.append("&accords=").append(URLEncoder.encode(!raw.contains(":") ? raw.replaceAll(" *, *", ":100,") + ":100" : raw, StandardCharsets.UTF_8));
                 }
                 if (top != null && !top.trim().isEmpty()) query.append("&top=").append(URLEncoder.encode(top, StandardCharsets.UTF_8));
@@ -853,7 +825,7 @@ public class ParfumController {
                 HttpRequest req = HttpRequest.newBuilder().uri(URI.create(url)).header("x-api-key", API_KEY).GET().build();
                 HttpResponse<String> res = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
                 if (res.statusCode() == 200) {
-                    // Nincs utólagos szűrés, közvetlenül visszaadjuk a listát (az API már szűrt)
+
                     return gson.fromJson(res.body(), new TypeToken<ArrayList<Parfum>>(){}.getType());
                 } else if (res.statusCode() == 404) return new ArrayList<>();
                 throw new Exception("API Error: " + res.statusCode());
@@ -866,7 +838,7 @@ public class ParfumController {
                 resultsPane.getChildren().add(new Label("Nincs találat."));
             } else {
                 for (Parfum p : m) {
-                    // ITT A VÁLTOZÁS: Az új, részletes kártyát hívjuk meg!
+
                     resultsPane.getChildren().add(createDetailedResultCard(p));
                 }
             }
@@ -882,9 +854,9 @@ public class ParfumController {
 
 
     private Node createDetailedResultCard(Parfum p) {
-        // 1. A FŐ KÁRTYA DOBOZ
+
         VBox card = new VBox();
-        card.getStyleClass().add("result-card"); // Ez adja a fehér hátteret és árnyékot
+        card.getStyleClass().add("result-card");
 
 
 
@@ -897,24 +869,22 @@ public class ParfumController {
         try {
             String imgUrl = (p.imageUrl != null && !p.imageUrl.isEmpty()) ? p.imageUrl : "file:placeholder.png";
 
-            // --- JAVÍTÁS ITT ---
-            // A paraméterek: url, width, height, preserveRatio, smooth, BACKGROUNDLOADING
-            // Az utolsó 'true' teszi lehetővé, hogy ne akadjon meg a program!
+            // parameterek: url, width, height, preserveRatio, smooth, BACKGROUNDLOADING
             Image image = new Image(imgUrl, 200, 180, true, true, true);
 
             imageView.setImage(image);
         } catch (Exception e) {
-            // Hiba esetén ne történjen semmi, vagy placeholder
+            // hiba eseten.placeholder
         }
         imageView.setFitHeight(180);
         imageView.setPreserveRatio(true);
-        // Ár címke (Balra fent)
+
         Label priceBadge = new Label(p.price != null ? "$" + p.price : "$--");
         priceBadge.getStyleClass().add("price-badge");
         StackPane.setAlignment(priceBadge, Pos.TOP_LEFT);
-        StackPane.setMargin(priceBadge, new Insets(10)); // 10px margó a szélektől
+        StackPane.setMargin(priceBadge, new Insets(10));
 
-        // Nem címke (Jobbra fent)
+
         Label genderBadge = new Label(p.gender != null ? p.gender : "Unisex");
         genderBadge.getStyleClass().add("gender-badge");
         StackPane.setAlignment(genderBadge, Pos.TOP_RIGHT);
@@ -922,20 +892,20 @@ public class ParfumController {
 
         imageContainer.getChildren().addAll(imageView, priceBadge, genderBadge);
 
-        // 3. SZÖVEGES TARTALOM (Alsó rész)
-        VBox contentBox = new VBox(8); // 8px távolság a sorok között
-        contentBox.setPadding(new Insets(15)); // Hogy ne érjen a szöveg a kártya széléhez
+
+        VBox contentBox = new VBox(8);
+        contentBox.setPadding(new Insets(15));
         contentBox.setAlignment(Pos.TOP_LEFT);
 
         Label nameLabel = new Label(p.name);
         nameLabel.getStyleClass().add("card-title");
         nameLabel.setWrapText(true);
-        nameLabel.setMinHeight(40); // Fix magasság, hogy ha 2 soros a név, akkor se ugráljon a layout
+        nameLabel.setMinHeight(40);
 
         Label brandLabel = new Label("by " + p.brand);
         brandLabel.getStyleClass().add("card-brand");
 
-        // Évszám, Rating, Ország sor
+        // ev, rating, orszag
         HBox infoRow = new HBox(8);
         infoRow.setAlignment(Pos.CENTER_LEFT);
 
@@ -950,7 +920,7 @@ public class ParfumController {
             infoRow.getChildren().add(ratingLabel);
         }
 
-        // Illatjegyek (Max 3 db)
+        // illatjegyek
         FlowPane accordsPane = new FlowPane(5, 5);
         if (p.mainAccordsPercentage != null) {
             int count = 0;
@@ -959,7 +929,7 @@ public class ParfumController {
                 Label accordLabel = new Label(entry.getKey());
                 accordLabel.getStyleClass().add("accord-pill");
 
-                // Dinamikus színek
+                // Dinamic colors
                 String style = "-fx-background-color: #F3F4F6; -fx-text-fill: #555;";
                 String key = entry.getKey().toLowerCase();
                 if (key.contains("citrus")) style = "-fx-background-color: #ECFCCB; -fx-text-fill: #3F6212;";
@@ -974,24 +944,14 @@ public class ParfumController {
                 count++;
             }
         }
-
         contentBox.getChildren().addAll(nameLabel, brandLabel, infoRow, accordsPane);
 
-        // Összerakás
         card.getChildren().addAll(imageContainer, contentBox);
 
-        // Kattintás esemény
         card.setOnMouseClicked(e -> displayParfumDetails(p));
 
         return card;
     }
-
-
-
-
-
-
-    // --- Segédfüggvények (CSS osztályokat használnak) ---
 
     private void populateRankingPane(FlowPane pane, List<Parfum.RankingItem> rankings) {
         if (rankings != null) {
@@ -1009,8 +969,6 @@ public class ParfumController {
         label.getStyleClass().add("ranking-chip"); // CSS
         return label;
     }
-
-
 
     private void loadSimilarFragrancesParallel(String parfumName, FlowPane resultsPane) {
         // Show loading indicator
@@ -1052,7 +1010,6 @@ public class ParfumController {
                                 .filter(p -> p != null)
                                 .collect(Collectors.toList());
 
-                        // Display all at once on UI thread
                         Platform.runLater(() -> {
                             for (Parfum parfum : parfums) {
                                 resultsPane.getChildren().add(createSmallParfumChip(parfum));
@@ -1210,23 +1167,22 @@ public class ParfumController {
         return chip;
     }
 
-    // --- ViewFactory (Tiszta CSS-es verzió) ---
+
+    //HOME PAGE
     private static class ViewFactory {
 
         public static VBox buildHomePage() {
-            VBox homeVBox = new VBox(30); // Nagyobb térköz a blokkok között
-            homeVBox.setPadding(new Insets(40)); // Nagyobb margó az oldaltól
+            VBox homeVBox = new VBox(30);
+            homeVBox.setPadding(new Insets(40));
 
-            // 1. Hero Szekció (Címek)
             Label welcomeLabel = new Label("Explore the World of Scents");
-            welcomeLabel.getStyleClass().add("hero-title"); // Új CSS osztály
+            welcomeLabel.getStyleClass().add("hero-title");
 
             Label subLabel = new Label("Your journey to the perfect fragrance starts here.");
-            subLabel.getStyleClass().add("hero-subtitle"); // Új CSS osztály
+            subLabel.getStyleClass().add("hero-subtitle");
 
             VBox headerBox = new VBox(5, welcomeLabel, subLabel);
 
-            // ... (többi része változatlan) ...
             VBox maleBox = createTop3Box("Top 3 Male Fragrance", new String[][]{
                     {"Dior Homme Intense", "https://d2k6fvhyk5xgx.cloudfront.net/images/dior-homme-intense.jpg"},
                     {"YSL La Nuit De L'Homme", "https://d2k6fvhyk5xgx.cloudfront.net/images/la-nuit-de-lhomme-yves-saint-laurent.jpg"},
@@ -1244,9 +1200,9 @@ public class ParfumController {
         private static VBox createTop3Box(String title, String[][] fragrances) {
             VBox box = new VBox(15);
             Label titleLabel = new Label(title);
-            titleLabel.getStyleClass().add("category-header"); // Új CSS osztály
+            titleLabel.getStyleClass().add("category-header");
 
-            HBox cardsHBox = new HBox(25); // Térköz a kártyák között
+            HBox cardsHBox = new HBox(25);
             for (String[] parfum : fragrances) {
                 cardsHBox.getChildren().add(createGlassCard(parfum[0], parfum[1]));
             }
@@ -1254,12 +1210,12 @@ public class ParfumController {
             return box;
         }
 
-        // Ez gyártja az üvegkártyákat
-        private static Node createGlassCard(String name, String imageUrl) {
-            VBox card = new VBox(12); // Térköz a kép és név között
-            card.getStyleClass().add("glass-card"); // Az üveg stílus
 
-            // Kép létrehozása
+        private static Node createGlassCard(String name, String imageUrl) {
+            VBox card = new VBox(12);
+            card.getStyleClass().add("glass-card");
+
+            //kep letrehozas
             ImageView imageView = new ImageView();
             try {
                 imageView.setImage(new Image(imageUrl, 150, 150, true, true, true));
@@ -1269,34 +1225,26 @@ public class ParfumController {
             imageView.setFitWidth(130);
             imageView.setPreserveRatio(true);
 
-            // Kép sarkainak lekerekítése (Clip)
+            //sarok kerekitas
             javafx.scene.shape.Rectangle clip = new javafx.scene.shape.Rectangle(130, 130);
             clip.setArcWidth(20);
             clip.setArcHeight(20);
             imageView.setClip(clip);
 
-            // Név
+            // nev
             Label nameLabel = new Label(name);
-            nameLabel.getStyleClass().add("glass-card-label"); // Fehér szöveg
+            nameLabel.getStyleClass().add("glass-card-label");
             nameLabel.setWrapText(true);
-            nameLabel.setMinHeight(40); // Hogy a 2 soros nevek ne ugráljanak
+            nameLabel.setMinHeight(40);
 
             card.getChildren().addAll(imageView, nameLabel);
             return card;
         }
 
-        // A másik osztályoknak (pl. Clone oldal) meg kell hagyni a régi metódust is,
-        // vagy át kell írni őket, hogy ezt használják.
-        // Ha a Clone oldalnak kell a régi createPerfumeCard, hagyd meg itt,
-        // de nevezd át vagy hagyd békén, és a fenti GlassCard-ot használd a főoldalon.
         public static Node createPerfumeCard(String name, String imageUrl) {
-            // ... ez maradhat a régi a kompatibilitás miatt, ha kell ...
-            return createGlassCard(name, imageUrl); // Vagy irányítsd át az újra
+            return createGlassCard(name, imageUrl);
         }
     }
-
-
-
 
     private void loadClonePage() {
         VBox clonePageVBox = new VBox(20);
@@ -1305,7 +1253,6 @@ public class ParfumController {
         Label title = new Label("Budget Friendly Alternatives (Clones)");
         title.getStyleClass().add("title-label");
 
-        // A párok listája: {Klón Név, Klón Kép, Eredeti Név, Eredeti Kép}
         String[][] clonePairs = {
                 {
                         "French Avenue Royal Blend",
@@ -1492,23 +1439,21 @@ public class ParfumController {
 
 
         };
-// --- ITT A VÁLTOZÁS: VBox HELYETT TilePane ---
         TilePane gridContainer = new TilePane();
-        gridContainer.setHgap(20); // Vízszintes távolság a dobozok között
-        gridContainer.setVgap(20); // Függőleges távolság
-        gridContainer.setPrefColumns(2); // 2 oszlop legyen
-        gridContainer.setAlignment(Pos.TOP_CENTER); // Középre igazítva
+        gridContainer.setHgap(20);
+        gridContainer.setVgap(20);
+        gridContainer.setPrefColumns(2);
+        gridContainer.setAlignment(Pos.TOP_CENTER);
         gridContainer.setStyle("-fx-background-color: transparent;");
 
         for (String[] pair : clonePairs) {
-            // A sort létrehozó függvény most egy szélesebb dobozt ad vissza
+
             HBox row = createCloneRow(pair[0], pair[1], pair[2], pair[3]);
             gridContainer.getChildren().add(row);
         }
 
         ScrollPane scrollPane = new ScrollPane(gridContainer);
         scrollPane.setFitToWidth(true);
-        // Fontos: Átlátszó háttér a görgetőnek is
         scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
 
         clonePageVBox.getChildren().addAll(title, scrollPane);
@@ -1521,25 +1466,23 @@ public class ParfumController {
     }
 
     private VBox createBigPerfumeCard(String name, String imageUrl) {
-        VBox card = new VBox(8); // Nagyobb térköz a kép és a szöveg között
+        VBox card = new VBox(8);
         card.setAlignment(Pos.TOP_CENTER);
-        card.setPrefWidth(230); // Szélesebb kártya (régi: 120)
-        card.getStyleClass().add("perfume-card"); // Megtartjuk a fehér keretet
+        card.setPrefWidth(230);
+        card.getStyleClass().add("perfume-card");
 
         ImageView imageView = new ImageView();
-        // KÉP MÉRETÉNEK NÖVELÉSE (100 -> 150)
         imageView.setFitHeight(200);
         imageView.setFitWidth(200);
         imageView.setPreserveRatio(true);
 
         try {
-            // Background loading true, hogy ne akadjon
+            // bg loading true h ne akadjon
             imageView.setImage(new Image(imageUrl, 150, 150, true, true, true));
         } catch (Exception e) { }
 
         Label nameLabel = new Label(name);
         nameLabel.getStyleClass().add("card-label");
-        // Felülírjuk a betűméretet nagyobbra (13px -> 15px)
         nameLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #333;");
         nameLabel.setWrapText(true);
         nameLabel.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
@@ -1548,37 +1491,30 @@ public class ParfumController {
         return card;
     }
     private HBox createCloneRow(String cloneName, String cloneImgUrl, String originalName, String originalImgUrl) {
-        HBox row = new HBox(25); // Nagyobb távolság a két parfüm között (15 -> 25)
+        HBox row = new HBox(25);
         row.setAlignment(Pos.CENTER);
-        row.setPadding(new Insets(20)); // Nagyobb belső margó
+        row.setPadding(new Insets(20));
 
-        // --- MÉRET ÉS STÍLUS MÓDOSÍTÁS ---
-        // Szélesség növelése: 480 -> 560 (hogy elférjenek a nagyobb képek)
-        // Így még pont kifér 2 oszlopba az 1200px széles ablakban
         row.setPrefWidth(560);
         row.setMaxWidth(560);
         row.setStyle("-fx-background-color: white; -fx-background-radius: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);");
 
-        // Bal oldal: Clone (ÚJ Nagy Kártyával)
         VBox cloneCard = createBigPerfumeCard(cloneName, cloneImgUrl);
 
         Label cloneLabel = new Label("CLONE");
-        // Nagyobb címke
+
         cloneLabel.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-padding: 4 10; -fx-background-radius: 6; -fx-font-weight: bold; -fx-font-size: 12px;");
 
         VBox leftBox = new VBox(10, cloneLabel, cloneCard);
         leftBox.setAlignment(Pos.CENTER);
 
-        // Közép: "dupe of" szöveg
         Label vsLabel = new Label("dupe of");
-        // Nagyobb betűméret (14 -> 16)
+
         vsLabel.setStyle("-fx-text-fill: #999; -fx-font-style: italic; -fx-font-size: 16px; -fx-font-weight: bold;");
 
-        // Jobb oldal: Original (ÚJ Nagy Kártyával)
         VBox originalCard = createBigPerfumeCard(originalName, originalImgUrl);
 
         Label origLabel = new Label("ORIGINAL");
-        // Nagyobb címke
         origLabel.setStyle("-fx-background-color: #333; -fx-text-fill: white; -fx-padding: 4 10; -fx-background-radius: 6; -fx-font-weight: bold; -fx-font-size: 12px;");
 
         VBox rightBox = new VBox(10, origLabel, originalCard);
@@ -1589,7 +1525,4 @@ public class ParfumController {
         row.setCursor(javafx.scene.Cursor.HAND);
         return row;
     }
-
-
-
 }

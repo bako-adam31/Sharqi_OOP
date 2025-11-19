@@ -118,7 +118,6 @@ public class Parfum extends Fragrance {
     public boolean isAppropriateForSeason(String seasonName) {
         if (seasonRanking == null || seasonName == null || seasonName.equals("Any")) return true;
         for (RankingItem item : seasonRanking) {
-            // Ha megtaláljuk a keresett évszakot és a pontszáma jó
             if (item.name.equalsIgnoreCase(seasonName) && item.score > 0.6) {
                 return true;
             }
@@ -138,7 +137,7 @@ public class Parfum extends Fragrance {
         return false;
     }
 
-//ellenorzes; egyenlo a keresettel?
+//ellenorzes egyenlo a keresettel?
     public boolean matchesGender(String genderFilter) {
         if (gender == null || genderFilter == null || genderFilter.equals("Any")) return true;
         return gender.equalsIgnoreCase(genderFilter);

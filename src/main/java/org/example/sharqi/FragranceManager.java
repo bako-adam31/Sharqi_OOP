@@ -1,6 +1,4 @@
 package org.example.sharqi;
-
-import java.util.ArrayList;
 import java.util.List;
 
 public class FragranceManager {

@@ -5,6 +5,7 @@ public abstract class Fragrance implements Displayable {
     protected String brand;
 
     public void printInfo(){
+
         System.out.println("Fragrance: " + name + "by" + brand);
     }
 
@@ -12,11 +13,13 @@ public abstract class Fragrance implements Displayable {
 
     @Override
     public String getDisplayName(){
+
         return name;
     }
 
     @Override
     public String getBrandName(){
+
         return brand;
     }
 }
