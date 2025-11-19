@@ -1,0 +1,141 @@
+/* styles.css */
+
+/* Általános */
+.root {
+    -fx-font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+}
+
+/* Címkék */
+.title-label {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+}
+
+.subtitle-label {
+    -fx-font-size: 16px;
+    -fx-text-fill: #555555;
+}
+
+.section-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+}
+
+.subsection-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+/* Parfüm Kártyák (Home oldal & Similar lista) */
+.perfume-card {
+    -fx-padding: 5px;
+    -fx-border-color: #eee;
+    -fx-border-width: 1;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-background-color: white;
+    -fx-cursor: hand;
+}
+
+.perfume-card:hover {
+    -fx-background-color: #f9f9f9;
+    -fx-border-color: #ddd;
+}
+
+.card-label {
+    -fx-font-size: 13px;
+    -fx-text-alignment: center;
+}
+
+/* Részletes Nézet (Details View) */
+.overlay-box {
+    -fx-background-color: linear-gradient(from 0% 50% to 0% 100%, transparent, #000000);
+    -fx-padding: 15;
+}
+
+.detail-name {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.detail-brand {
+    -fx-font-size: 16px;
+    -fx-text-fill: #cccccc;
+}
+
+.tag-label {
+    -fx-text-fill: white;
+    -fx-padding: 4 8 4 8;
+    -fx-background-radius: 5;
+}
+
+.tag-oil {
+    -fx-background-color: rgba(255,255,255,0.3);
+}
+
+.tag-price {
+    -fx-background-color: #e64a19;
+    -fx-font-weight: bold;
+}
+
+/* Info Grid */
+.info-label-key {
+    -fx-font-size: 20px;
+    -fx-text-fill: #777;
+}
+
+.info-label-value {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+}
+
+/* Sillage / Longevity */
+.sillage-value {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #43A047; /* Zöld */
+}
+
+.longevity-value {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #43A047; /* Zöld */
+}
+
+/* Ranking Chips */
+.ranking-chip {
+    -fx-background-color: #e0eafc;
+    -fx-text-fill: #3366cc;
+    -fx-font-weight: bold;
+    -fx-padding: 4 8 4 8;
+    -fx-background-radius: 15;
+}
+
+/* Note Chips */
+.note-chip {
+    -fx-background-color: #f0f0f0;
+    -fx-padding: 8 12 8 12;
+    -fx-background-radius: 20;
+}
+
+.note-label {
+    -fx-font-size: 16px;
+}
+
+/* Accord Bar */
+.accord-label {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+    -fx-padding: 0 0 0 10;
+}
+
+.accord-bar {
+    -fx-background-radius: 15;
+}
+
+/* Keresőmező */
+.search-field {
+    -fx-font-size: 16px;
+}
