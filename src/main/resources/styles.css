@@ -139,3 +139,45 @@
 .search-field {
     -fx-font-size: 16px;
 }
+
+/* A teljes kártya doboza */
+.perfume-card {
+    -fx-background-color: white;
+    -fx-background-radius: 15; /* Lekerekített sarok */
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5); /* Finom árnyék */
+    -fx-padding: 15;
+    -fx-min-width: 220px;
+    -fx-max-width: 220px;
+}
+
+/* Az ár és a nem (Unisex) címkéje */
+.floating-badge {
+    -fx-background-color: #E0D4FC; /* Halványlila a képről */
+    -fx-background-radius: 8;
+    -fx-padding: 3 8 3 8;
+    -fx-text-fill: #4A0E78;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+}
+
+/* A márka neve */
+.card-brand {
+    -fx-text-fill: #777777;
+    -fx-font-size: 12px;
+}
+
+/* A parfüm neve */
+.card-title {
+    -fx-font-weight: bold;
+    -fx-font-size: 15px;
+    -fx-text-fill: #222222;
+}
+
+/* Az alsó kis illatjegy címkék (leather, woody) */
+.accord-tag {
+    -fx-background-color: #FDF4C6; /* Sárgás a képről */
+    -fx-background-radius: 15;
+    -fx-padding: 4 10 4 10;
+    -fx-font-size: 11px;
+    -fx-text-fill: #5C4B08;
+}

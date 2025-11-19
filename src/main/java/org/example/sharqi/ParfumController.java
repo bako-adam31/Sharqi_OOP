@@ -38,7 +38,8 @@ import java.util.concurrent.Executors;
 import javafx.scene.control.ComboBox;
 import java.util.function.Consumer;
 import java.util.function.Function;
-
+import javafx.scene.layout.TilePane;
+import javafx.scene.layout.TilePane;
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -392,8 +393,15 @@ public class ParfumController {
         Label resultsTitle = new Label("Matching Perfumes (max 6)");
         resultsTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
 
-        FlowPane resultsPane = new FlowPane(10, 10);
-        resultsPane.setPrefWrapLength(500);
+        TilePane resultsPane = new TilePane();
+        resultsPane.setHgap(20);
+        resultsPane.setVgap(20);
+        resultsPane.setPrefColumns(3); // 3 oszlop
+        resultsPane.setAlignment(Pos.TOP_CENTER);
+        resultsPane.setStyle("-fx-padding: 20; -fx-background-color: #F4F4F4;");
+
+        //FlowPane resultsPane = new FlowPane(10, 10);
+        //resultsPane.setPrefWrapLength(500);
         resultsVBox.getChildren().addAll(resultsTitle, resultsPane);
 
         HBox filterPageLayout = new HBox(20, filterVBox, resultsVBox);
@@ -413,8 +421,9 @@ public class ParfumController {
     }
 
     // --- MÓDOSÍTOTT API MATCH TASK (Csak API hívás, nincs utólagos szűrés) ---
-    private Task<List<Parfum>> startApiMatchTask(String accord, String top, String middle, String base, FlowPane resultsPane) {
-        resultsPane.getChildren().clear(); resultsPane.getChildren().add(new Label("Keresés..."));
+    private Task<List<Parfum>> startApiMatchTask(String accord, String top, String middle, String base, TilePane resultsPane) {
+        resultsPane.getChildren().clear();
+        resultsPane.getChildren().add(new Label("Keresés..."));
         Task<List<Parfum>> matchTask = new Task<>() {
             @Override
             protected List<Parfum> call() throws Exception {
@@ -443,8 +452,14 @@ public class ParfumController {
         matchTask.setOnSucceeded(e -> Platform.runLater(() -> {
             resultsPane.getChildren().clear();
             List<Parfum> m = matchTask.getValue();
-            if (m == null || m.isEmpty()) resultsPane.getChildren().add(new Label("Nincs találat."));
-            else m.forEach(p -> resultsPane.getChildren().add(createSmallParfumChip(p)));
+            if (m == null || m.isEmpty()) {
+                resultsPane.getChildren().add(new Label("Nincs találat."));
+            } else {
+                for (Parfum p : m) {
+                    // ITT A VÁLTOZÁS: Az új, részletes kártyát hívjuk meg!
+                    resultsPane.getChildren().add(createDetailedResultCard(p));
+                }
+            }
         }));
         matchTask.setOnFailed(e -> {
             Platform.runLater(() -> { resultsPane.getChildren().clear(); resultsPane.getChildren().add(new Label("Hiba.")); });
@@ -454,7 +469,95 @@ public class ParfumController {
         return matchTask;
     }
 
-    // ... (A ParfumController többi része változatlan) ...
+    private Node createDetailedResultCard(Parfum p) {
+        // 1. Fő doboz
+        VBox card = new VBox(8); // 8px térköz az elemek között
+        card.getStyleClass().add("result-card");
+
+        // 2. Kép konténer (StackPane a lebegő címkék miatt)
+        StackPane imageStack = new StackPane();
+        imageStack.setAlignment(Pos.TOP_CENTER);
+
+        ImageView imageView = new ImageView();
+        try {
+            if (p.imageUrl != null && !p.imageUrl.isEmpty()) {
+                imageView.setImage(new Image(p.imageUrl, true));
+            }
+        } catch (Exception e) { }
+        imageView.setFitHeight(160);
+        imageView.setFitWidth(160);
+        imageView.setPreserveRatio(true);
+
+        // Lebegő ár (Bal felül)
+        Label priceBadge = new Label(p.price != null ? "$" + p.price : "$--");
+        priceBadge.getStyleClass().add("price-badge");
+        StackPane.setAlignment(priceBadge, Pos.TOP_LEFT);
+        StackPane.setMargin(priceBadge, new Insets(5));
+
+        // Lebegő nem (Jobb felül)
+        Label genderBadge = new Label(p.gender != null ? p.gender : "Unisex");
+        genderBadge.getStyleClass().add("gender-badge");
+        StackPane.setAlignment(genderBadge, Pos.TOP_RIGHT);
+        StackPane.setMargin(genderBadge, new Insets(5));
+
+        imageStack.getChildren().addAll(imageView, priceBadge, genderBadge);
+
+        // 3. Szöveges adatok
+        Label nameLabel = new Label(p.name);
+        nameLabel.getStyleClass().add("card-title");
+        nameLabel.setWrapText(true);
+
+        Label brandLabel = new Label("by " + p.brand);
+        brandLabel.getStyleClass().add("card-brand");
+
+        // 4. Info sor (Évszám + Értékelés + Ország)
+        HBox infoRow = new HBox(6);
+        if (p.year != null) {
+            Label yearLabel = new Label(p.year);
+            yearLabel.getStyleClass().add("info-tag");
+            infoRow.getChildren().add(yearLabel);
+        }
+        if (p.rating != null) {
+            Label ratingLabel = new Label("★ " + p.rating);
+            ratingLabel.getStyleClass().add("rating-tag");
+            infoRow.getChildren().add(ratingLabel);
+        }
+        if (p.country != null) {
+            Label countryLabel = new Label(p.country);
+            countryLabel.getStyleClass().add("info-tag");
+            infoRow.getChildren().add(countryLabel);
+        }
+
+        // 5. Illatjegyek (Accords) - Színes pirulák
+        FlowPane accordsPane = new FlowPane(5, 5);
+        if (p.mainAccordsPercentage != null) {
+            int count = 0;
+            // Limitáljuk 3 darabra, hogy ne csússzon szét
+            for (Map.Entry<String, String> entry : p.mainAccordsPercentage.entrySet()) {
+                if (count >= 3) break;
+
+                Label accordLabel = new Label(entry.getKey());
+                accordLabel.getStyleClass().add("accord-pill");
+
+                // Egyedi színek a "hangulathoz" (hardcoded példa színek)
+                String style = "-fx-background-color: #FDF4C6; -fx-text-fill: #854D0E;"; // Alap sárga
+                if (entry.getKey().toLowerCase().contains("wood")) style = "-fx-background-color: #E0E7FF; -fx-text-fill: #3730A3;"; // Kék
+                else if (entry.getKey().toLowerCase().contains("rose")) style = "-fx-background-color: #FCE7F3; -fx-text-fill: #9D174D;"; // Rózsaszín
+                else if (entry.getKey().toLowerCase().contains("citrus")) style = "-fx-background-color: #ECFCCB; -fx-text-fill: #3F6212;"; // Zöld
+
+                accordLabel.setStyle(style);
+                accordsPane.getChildren().add(accordLabel);
+                count++;
+            }
+        }
+
+        card.getChildren().addAll(imageStack, nameLabel, brandLabel, infoRow, accordsPane);
+
+        // Kattintásra részletek
+        card.setOnMouseClicked(e -> displayParfumDetails(p));
+
+        return card;
+    }
 
 
 
